@@ -177,12 +177,6 @@ Result miiDbAddOrReplaceCharInfoFromFile(const char* file_path) {
     charInfoToCoreData(&in_data, &intermediate, &id);
     coreDataToStoreData(&intermediate, &id, &new_data);
 
-    printf("storedata: \n");
-    for(u64 i = 0; i<sizeof(new_data); i++) {
-        printf("%02X", ((u8*)&new_data)[i]);
-    }
-    printf("\n");
-
     res = miiOpenDatabase(&DbService, MiiSpecialKeyCode_Special);
     if(R_FAILED(res)) return res;
     res = miiDatabaseAddOrReplace(&DbService, &new_data);
