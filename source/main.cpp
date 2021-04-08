@@ -44,6 +44,7 @@ class FocusList : public brls::List {
 
 const std::string TITLE = "MiiPort";
 
+// todo: add button to open official mii menu, compare with swkbdShow in libnx and nn::mii::ShowMiiEdit in sdk
 int main(int argc, char* argv[]) {
     brls::Logger::setLogLevel(brls::LogLevel::INFO);
 
@@ -85,18 +86,33 @@ int main(int argc, char* argv[]) {
     for(auto& entry: fs::directory_iterator(import_path)) {
         brls::ListItem* fileItem = new brls::ListItem(entry.path().filename());
         fileItem->getClickEvent()->subscribe([entry](brls::View* view) {
-            //todo: give human readable error for "database full" instead of code
             Result res = importMiiFile(entry.path());
-            if (res == 0xFFFFFFFF) {
-                brls::Application::notify("File extension not recognized");
-            }
-            else if(R_FAILED(res)) {
-                std::stringstream ss;
-                ss << "Import error: 0x" << std::hex << res;
-                brls::Application::notify(ss.str());
-            }
-            else {
-                brls::Application::notify("Imported!");
+            switch(res) {
+                case 0: {
+                    brls::Application::notify("Imported!");
+                    break;
+                }
+                case 0xa7e: {
+                    brls::Application::notify("Mii database is full");
+                    break;
+                }
+                // bad storedata format
+                case 0xda7e:
+                // bad nfif format
+                case 0xe07e: {
+                    brls::Application::notify("Improper file format");
+                    break;
+                }
+                case 0xFFFFFFFF: {
+                    brls::Application::notify("File extension not recognized");
+                    break;
+                }
+                default: {
+                    std::stringstream ss;
+                    ss << "Import error: 0x" << std::hex << res;
+                    brls::Application::notify(ss.str());
+                    break;
+                }
             }
         });
         fileList->addView(fileItem);
