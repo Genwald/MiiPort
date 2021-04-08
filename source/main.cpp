@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 
     brls::TabFrame* rootFrame = new brls::TabFrame();
     rootFrame->setTitle(TITLE);
-    rootFrame->setIcon(BOREALIS_ASSET("icon/borealis.jpg"));
+    rootFrame->setIcon(BOREALIS_ASSET("icon/MiiPort.png"));
 
     FocusList* aboutList = new FocusList(false);
 
