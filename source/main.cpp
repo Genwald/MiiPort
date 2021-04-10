@@ -54,6 +54,11 @@ int main(int argc, char* argv[]) {
     brls::Style custom_style = brls::Style::horizon();
     custom_style.Sidebar.width = 280;
     custom_style.Sidebar.marginLeft = 55;
+    custom_style.Header.height = 25;
+    custom_style.Header.fontSize = 25;
+    custom_style.Header.rectangleWidth = 9;
+    custom_style.List.Item.height = 65;
+    custom_style.List.spacing = 45;
 
     if (!brls::Application::init(TITLE, custom_style, brls::Theme::horizon()))
     {
