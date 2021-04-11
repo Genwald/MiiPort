@@ -135,7 +135,7 @@ int main(int argc, char* argv[]) {
     }
     
     brls::List* exportList = new brls::List();
-    brls::ListItem* exportItem = new brls::ListItem("Export mii database as NFIF");
+    brls::ListItem* exportItem = new brls::ListItem("Export Mii database as NFIF");
     exportItem->getClickEvent()->subscribe([import_path](brls::View* view) {
         fs::path path = import_path / "exportedDB.NFIF";
         Result res = miiDbExportToFile(path.c_str());
@@ -148,7 +148,10 @@ int main(int argc, char* argv[]) {
             brls::Application::notify("Exported!");
         }
     });
+    exportItem->setTextSize(28);
     exportList->addView(exportItem);
+    brls::Label *note = new brls::Label(brls::LabelStyle::REGULAR, "Export individual Miis as charinfo", false);
+    exportList->addView(note);
 
     {
         Result res;
