@@ -1,6 +1,6 @@
 #include <switch.h>
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     MiiCreateId create_id;
     char16_t nickname[11]; /* null terminated */
     u8 font_region;
@@ -55,7 +55,7 @@ typedef struct __attribute__((packed)) {
     u8 reserved; /* always zero */
 } charInfo;
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     u8 hair_type;
 
     u8 height:7;

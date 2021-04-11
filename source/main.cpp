@@ -42,6 +42,12 @@ class FocusList : public brls::List {
         }
 };
 
+void notifyError(Result res) {
+    std::stringstream ss;
+    ss << "Import error: 0x" << std::hex << res;
+    brls::Application::notify(ss.str());
+}
+
 const std::string TITLE = "MiiPort";
 
 // todo: add button to open official mii menu, compare with swkbdShow in libnx and nn::mii::ShowMiiEdit in sdk
@@ -88,10 +94,11 @@ int main(int argc, char* argv[]) {
     FocusList* fileList = new FocusList(true);
 
     fs::create_directories(import_path);
+    // iterator does not give unicode paths at all
     for(auto& entry: fs::directory_iterator(import_path)) {
         brls::ListItem* fileItem = new brls::ListItem(entry.path().filename());
-        fileItem->getClickEvent()->subscribe([entry](brls::View* view) {
-            Result res = importMiiFile(entry.path());
+        fileItem->getClickEvent()->subscribe([path{std::move(entry.path())}](brls::View* view) {
+            Result res = importMiiFile(path);
             switch(res) {
                 case 0: {
                     brls::Application::notify("Imported!");
@@ -113,9 +120,7 @@ int main(int argc, char* argv[]) {
                     break;
                 }
                 default: {
-                    std::stringstream ss;
-                    ss << "Import error: 0x" << std::hex << res;
-                    brls::Application::notify(ss.str());
+                    notifyError(res);
                     break;
                 }
             }
@@ -144,6 +149,48 @@ int main(int argc, char* argv[]) {
         }
     });
     exportList->addView(exportItem);
+
+    {
+        Result res;
+        int count;
+        const int max_miis = 100;
+        charInfo miis[max_miis];
+        res = getCharInfos(miis, max_miis, &count);
+        if(R_FAILED(res)) {
+            notifyError(res);
+        }
+        else {
+            for(int i = 0; i < count; i++) {
+                std::u16string utf16_name = miis[i].nickname;
+                std::string utf8_name = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.to_bytes(utf16_name);
+                fs::path export_path;
+                // special characters seem poorly supported in paths. 
+                // If the name uses any, use create ID for file name instead.
+                // compare lengths to check for special characters.
+                if(utf16_name.length() == utf8_name.length()) {
+                    export_path = import_path / utf8_name += ".charinfo";
+                }
+                else {
+                    // todo: less gross way to do this?
+                    const u32 id_size = (sizeof(MiiCreateId)*2)+1;
+                    char id[id_size];
+                    for(u64 j = 0; j<sizeof(MiiCreateId); j++) {
+                        snprintf(&id[j*2], 3, "%02X", miis[i].create_id.uuid.uuid[j]);
+                    }
+                    export_path = import_path / id += ".charinfo";
+                }
+                brls::ListItem* miiItem = new brls::ListItem(utf8_name);
+                miiItem->getClickEvent()->subscribe(
+                [export_path{std::move(export_path)}, mii{std::move(miis[i])}]
+                (brls::View* view) {
+                    writeToFile(export_path.c_str(), &mii);
+                    brls::Application::notify("Exported!");
+                });
+                exportList->addView(miiItem);
+            }
+        }
+    }
+
 
     rootFrame->addTab("Import", fileList);
     rootFrame->addTab("Export", exportList);

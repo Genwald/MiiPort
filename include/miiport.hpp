@@ -15,7 +15,7 @@ bool readFromFile(const char *path, T *out) {
     size_t size_read;
     FILE* file = fopen(path, "r");
     if(file == nullptr) {
-        printf("File open error: %d", errno);
+        printf("File open error: %d\n", errno);
         return false;
     } 
 
@@ -30,7 +30,7 @@ bool writeToFile(const char *path, T *out) {
     size_t size_written;
     FILE* file = fopen(path, "w");
     if(file == nullptr) {
-        printf("File open error: %d", errno);
+        printf("File open error: %d\n", errno);
         return false;
     }
 
@@ -135,6 +135,7 @@ void makeRandCreateId(MiiCreateId *out) {
     out->uuid.uuid[8] |= 0b1000'0000;
 }
 
+// todo: add check for duplicate create ID and warn user about replacing
 Result addOrReplaceStoreData(storeData *input) {
     MiiDatabase DbService;
     Result res;
@@ -161,6 +162,16 @@ Result importNFIF(NFIF *input) {
     res = miiOpenDatabase(&DbService, MiiSpecialKeyCode_Special);
     if(R_FAILED(res)) return res;
     res = miiDatabaseImport(&DbService, input);
+    miiDatabaseClose(&DbService);
+    return res;
+}
+
+Result getCharInfos(charInfo *out_array, int size, int *out_size) {
+    MiiDatabase DbService;
+    Result res;
+    res = miiOpenDatabase(&DbService, MiiSpecialKeyCode_Special);
+    if(R_FAILED(res)) return res;
+    res = miiDatabaseGet1(&DbService, MiiSourceFlag_Database, (MiiCharInfo*)out_array, size, out_size);
     miiDatabaseClose(&DbService);
     return res;
 }
