@@ -199,6 +199,14 @@ Result miiDbImportFromFile(const char* file_path) {
     return importNFIF(&Db);
 }
 
+Result miiDbAddOrReplaceStoreDataFromFile(const char* file_path) {
+    storeData in_data;
+    readFromFile(file_path, &in_data);
+    // run this to regenerate checksums
+    coreDataToStoreData(&in_data.core_data, &in_data.create_id, &in_data);
+    return addOrReplaceStoreData(&in_data);
+}
+
 Result miiDbAddOrReplaceCoreDataFromFile(const char* file_path) {
     coreData in_data;
     storeData new_data;
@@ -251,6 +259,9 @@ Result importMiiFile(fs::path file_path) {
     // drop coredata file support? Or feature flag? Or just keep it and don't advertise it?
     else if(ext == ".coredata") {
         res = miiDbAddOrReplaceCoreDataFromFile(file_path.c_str());
+    }
+    else if(ext == ".storedata") {
+        res = miiDbAddOrReplaceStoreDataFromFile(file_path.c_str());
     }
     else {
         // todo: something other than fake result
