@@ -347,7 +347,7 @@ Result importMiiFile(fs::path file_path) {
         res = miiDbAddOrReplaceStoreDataFromFile(file_path.c_str());
     }
     else {
-        // todo: something other than fake result
+        // todo: better custom results? Use N's format with module number and description number?
         // No matching extension
         return 0xFFFFFFFF;
     }

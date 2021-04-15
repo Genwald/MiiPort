@@ -48,9 +48,6 @@ const std::string TITLE = "MiiPort";
 int main(int argc, char* argv[]) {
     brls::Logger::setLogLevel(brls::LogLevel::INFO);
 
-    // todo: handle init errors
-    init();
-
     brls::Style custom_style = brls::Style::horizon();
     custom_style.Sidebar.width = 280;
     custom_style.Sidebar.marginLeft = 55;
@@ -60,7 +57,7 @@ int main(int argc, char* argv[]) {
     custom_style.List.Item.height = 65;
     custom_style.List.spacing = 45;
 
-    if (!brls::Application::init(TITLE, custom_style, brls::Theme::horizon()))
+    if (R_FAILED(init()) || !brls::Application::init(TITLE, custom_style, brls::Theme::horizon()))
     {
         brls::Logger::error("Unable to init Borealis application");
         return EXIT_FAILURE;
@@ -72,7 +69,6 @@ int main(int argc, char* argv[]) {
 
     FocusList* aboutList = new FocusList(false);
 
-    // todo: use headers or not? Change style maybe? margins?
     aboutList->addView(new brls::Header("About", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
     "A tool to import Miis in a variety of formats.\nSupports the NFIF, charinfo, and coredata formats.\nExports only in NFIF."
@@ -156,6 +152,7 @@ int main(int argc, char* argv[]) {
                 miiItem->getClickEvent()->subscribe(
                 [export_path{std::move(export_path)}, mii{std::move(miis[i])}]
                 (brls::View* view) {
+                    // todo: ask before replacing file?
                     writeToFile(export_path.c_str(), &mii);
                     brls::Application::notify("Exported!");
                 });
