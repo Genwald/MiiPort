@@ -1,6 +1,6 @@
 #include <switch.h>
 
-typedef struct {
+typedef struct {  /* charInfo */
     MiiCreateId create_id;
     char16_t nickname[11]; /* null terminated */
     u8 font_region;
@@ -55,7 +55,7 @@ typedef struct {
     u8 reserved; /* always zero */
 } charInfo;
 
-typedef struct {
+typedef struct {  /* coreData */
     u8 hair_type;
 
     u8 height:7;
@@ -142,29 +142,29 @@ typedef struct {
     char16_t nickname[10]; /* Not null terminated */
 } coreData;
 
-struct storeData {
+typedef struct {
     coreData core_data;
     MiiCreateId create_id;
     u16 crc16;
     u16 crc16_device;
-};
+} storeData;
 
-struct NFDB {
+typedef struct {
     char magic[4]; /* NFDB */
     storeData entries[100];
     u8 version; /* always 1 */
     u8 entry_count;
     u16 crc16;
-};
+} NFDB;
 
-struct NFIF {
+typedef struct {
     char magic[4]; /* NFIF */
     coreData entries[100];
     u8 version; /* always 2 */
     u8 entry_count;
     u8 unused[2];
-    u8 hmac_sha256[0x20];
-};
+    u8 hmac_sha256[0x20]; /* key found in sdb main. Look at database export function */
+} NFIF;
 
 Result miiDatabaseExport(MiiDatabase *db, NFIF* out_buffer) {
     return serviceDispatch(&db->s, 19,
@@ -182,4 +182,16 @@ Result miiDatabaseImport(MiiDatabase *db, const NFIF* in_buffer) {
 
 Result miiDatabaseAddOrReplace(MiiDatabase *db, const storeData *input) {
     return serviceDispatchIn(&db->s, 13, *input);
+}
+
+Result miiDatabaseFindIndex(MiiDatabase *db, const MiiCreateId* id, bool idk, int* out_idx) {
+    const struct {
+        MiiCreateId id;
+        bool idk;
+    } in = {*id, idk};
+    return serviceDispatchInOut(&db->s, 11, in, *out_idx);
+}
+
+Result miiDatabaseGetIndex(MiiDatabase *db, int idx, charInfo* out) {
+    return serviceDispatchInOut(&db->s, 21, idx, out);
 }

@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <string>
 #include <cstring>
-#include <errno.h>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -9,6 +8,44 @@ namespace fs = std::filesystem;
 
 #include <mii_ext.h>
 #include <crc.hpp>
+
+void notifyError(Result res) {
+    std::stringstream ss;
+    ss << "Import error: 0x" << std::hex << res;
+    brls::Application::notify(ss.str());
+}
+
+void importNotify(Result res) {
+    switch(res) {
+        case 0: {
+            brls::Application::notify("Imported!");
+            break;
+        }
+        case 0xa7e: {
+            brls::Application::notify("Mii database is full");
+            break;
+        }
+        // bad storedata format
+        case 0xda7e:
+        // bad nfif format
+        case 0xe07e: {
+            brls::Application::notify("Improper file format");
+            break;
+        }
+        // custom result: showing popup
+        case 0xFFFFFFF1: {
+            break;
+        }
+        case 0xFFFFFFFF: {
+            brls::Application::notify("File extension not recognized");
+            break;
+        }
+        default: {
+            notifyError(res);
+            break;
+        }
+    }
+}
 
 template <typename T>
 bool readFromFile(const char *path, T *out) {
@@ -135,13 +172,59 @@ void makeRandCreateId(MiiCreateId *out) {
     out->uuid.uuid[8] |= 0b1000'0000;
 }
 
-// todo: add check for duplicate create ID and warn user about replacing
-Result addOrReplaceStoreData(storeData *input) {
+Result addOrReplaceStoreData(const storeData *input) {
     MiiDatabase DbService;
     Result res;
     res = miiOpenDatabase(&DbService, MiiSpecialKeyCode_Special);
     if(R_FAILED(res)) return res;
     res = miiDatabaseAddOrReplace(&DbService, input);
+    miiDatabaseClose(&DbService);
+    return res;
+}
+
+void showDupeCreateIDPopup(storeData *input){
+    brls::Dialog* dialog = new brls::Dialog("A Mii with the same Mii ID already exists on your switch.");
+
+    brls::GenericEvent::Callback repalceCallback = [dialog, input{*input}](brls::View* view) {
+        Result res = addOrReplaceStoreData(&input);
+
+        importNotify(res);
+        dialog->close();
+    };
+    brls::GenericEvent::Callback randomCallback = [dialog, input{*input}](brls::View* view) mutable {
+        makeRandCreateId(&input.create_id);
+        // changed data, so re-generate storedata hashes
+        coreDataToStoreData(&input.core_data, &input.create_id, &input);
+        Result res = addOrReplaceStoreData(&input);
+
+        importNotify(res);
+        dialog->close();
+    };
+
+    dialog->addButton("Replace", repalceCallback);
+    dialog->addButton("Use Random Mii ID", randomCallback);
+
+    dialog->setCancelable(true);
+
+    dialog->open();
+}
+
+Result addOrReplaceStoreDataWithPrompt(storeData *input) {
+    MiiDatabase DbService;
+    Result res;
+    int idx;
+    res = miiOpenDatabase(&DbService, MiiSpecialKeyCode_Special);
+    if(R_FAILED(res)) return res;
+    res = miiDatabaseFindIndex(&DbService, &input->create_id, true, &idx);
+    if(R_FAILED(res)) return res;
+    // duplicate create ID found
+    if(idx != -1) {
+        showDupeCreateIDPopup(input);
+        res = 0xFFFFFFF1;
+    }
+    else {
+        res = miiDatabaseAddOrReplace(&DbService, input);
+    }
     miiDatabaseClose(&DbService);
     return res;
 }
@@ -204,7 +287,7 @@ Result miiDbAddOrReplaceStoreDataFromFile(const char* file_path) {
     readFromFile(file_path, &in_data);
     // run this to regenerate checksums
     coreDataToStoreData(&in_data.core_data, &in_data.create_id, &in_data);
-    return addOrReplaceStoreData(&in_data);
+    return addOrReplaceStoreDataWithPrompt(&in_data);
 }
 
 Result miiDbAddOrReplaceCoreDataFromFile(const char* file_path) {
@@ -228,7 +311,7 @@ Result miiDbAddOrReplaceCoreDataFromFile(const char* file_path) {
     printf("\n");
     
     coreDataToStoreData(&in_data, &id, &new_data);
-    return addOrReplaceStoreData(&new_data);
+    return addOrReplaceStoreDataWithPrompt(&new_data);
 }
 
 Result miiDbAddOrReplaceCharInfoFromFile(const char* file_path) {
@@ -242,7 +325,7 @@ Result miiDbAddOrReplaceCharInfoFromFile(const char* file_path) {
     charInfoToCoreData(&in_data, &intermediate, &id);
     coreDataToStoreData(&intermediate, &id, &new_data);
 
-    return addOrReplaceStoreData(&new_data);
+    return addOrReplaceStoreDataWithPrompt(&new_data);
 }
 
 Result importMiiFile(fs::path file_path) {

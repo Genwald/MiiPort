@@ -42,12 +42,6 @@ class FocusList : public brls::List {
         }
 };
 
-void notifyError(Result res) {
-    std::stringstream ss;
-    ss << "Import error: 0x" << std::hex << res;
-    brls::Application::notify(ss.str());
-}
-
 const std::string TITLE = "MiiPort";
 
 // todo: add button to open official mii menu, compare with swkbdShow in libnx and nn::mii::ShowMiiEdit in sdk
@@ -99,31 +93,7 @@ int main(int argc, char* argv[]) {
         brls::ListItem* fileItem = new brls::ListItem(entry.path().filename());
         fileItem->getClickEvent()->subscribe([path{std::move(entry.path())}](brls::View* view) {
             Result res = importMiiFile(path);
-            switch(res) {
-                case 0: {
-                    brls::Application::notify("Imported!");
-                    break;
-                }
-                case 0xa7e: {
-                    brls::Application::notify("Mii database is full");
-                    break;
-                }
-                // bad storedata format
-                case 0xda7e:
-                // bad nfif format
-                case 0xe07e: {
-                    brls::Application::notify("Improper file format");
-                    break;
-                }
-                case 0xFFFFFFFF: {
-                    brls::Application::notify("File extension not recognized");
-                    break;
-                }
-                default: {
-                    notifyError(res);
-                    break;
-                }
-            }
+            importNotify(res);
         });
         fileList->addView(fileItem);
     }
