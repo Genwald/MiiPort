@@ -78,6 +78,16 @@ bool writeToFile(const char *path, T *out) {
     return true;
 }
 
+template <typename T>
+std::string getHexStr(T *data) {
+    std::stringstream ss;
+    ss << std::uppercase << std::hex;
+    for(u64 i = 0; i<sizeof(T); i++) {
+        ss << std::setw(2) << std::setfill('0') << (u32)((u8*)data)[i];
+    }
+    return ss.str();
+}
+
 void stringToLower(std::string *str) {
     std::transform(str->begin(), str->end(), str->begin(),
         [](unsigned char c){ return std::tolower(c); });

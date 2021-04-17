@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
     custom_style.Header.fontSize = 25;
     custom_style.Header.rectangleWidth = 9;
     custom_style.List.Item.height = 65;
+    custom_style.List.Item.heightWithSubLabel = 74;
     custom_style.List.spacing = 45;
 
     if (R_FAILED(init()) || !brls::Application::init(TITLE, custom_style, brls::Theme::horizon()))
@@ -140,15 +141,10 @@ int main(int argc, char* argv[]) {
                     export_path = import_path / utf8_name += ".charinfo";
                 }
                 else {
-                    // todo: less gross way to do this?
-                    const u32 id_size = (sizeof(MiiCreateId)*2)+1;
-                    char id[id_size];
-                    for(u64 j = 0; j<sizeof(MiiCreateId); j++) {
-                        snprintf(&id[j*2], 3, "%02X", miis[i].create_id.uuid.uuid[j]);
-                    }
-                    export_path = import_path / id += ".charinfo";
+                    export_path = import_path / getHexStr(&miis[i].create_id) += ".charinfo";
                 }
-                brls::ListItem* miiItem = new brls::ListItem(utf8_name);
+                // todo: face icon for each Mii?
+                brls::ListItem* miiItem = new brls::ListItem(utf8_name, "",getHexStr(&miis[i].create_id));
                 miiItem->getClickEvent()->subscribe(
                 [export_path{std::move(export_path)}, mii{std::move(miis[i])}]
                 (brls::View* view) {
