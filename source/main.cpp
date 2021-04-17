@@ -72,13 +72,18 @@ int main(int argc, char* argv[]) {
 
     aboutList->addView(new brls::Header("About", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
-    "A tool to import Miis in a variety of formats.\nSupports the NFIF, charinfo, and coredata formats.\nExports only in NFIF."
+    "A tool to import and export Miis in a variety of formats.\n"
+    "Supports importing the NFIF, charinfo, coredata and storedata formats.\n"
+    "Exports full DBs in NFIF and individual characters in charinfo."
     , true));
     aboutList->addView(new brls::Header("How to use", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
-    "Place Mii files in \"sd:/MiiPort/miis/\".\nGive files a file extension that corresponds to their format i.e. \".charinfo\".\nA Mii ID can be specified in hexadecimal in the file name of a coredata file, otherwise a random one will be used.\n For example \"7C118DA34ADB46CB8FFC083BD00DC111.coredata\"\nCurrently exports to \"sd:/MiiPort/miis/exportedDB.NFIF\" and will overwrite an existing file."
+    "Place Mii files in \"sd:/MiiPort/miis/\".\n"
+    "Give files a file extension that corresponds to their format i.e. \".charinfo\".\n"
+    "Currently exports to \"sd:/MiiPort/miis/exportedDB.NFIF\" and \"sd:/MiiPort/miis/[name].charinfo\" or \"sd:/MiiPort/miis/[Mii ID].charinfo\" if the name can not be used. This will overwrite an existing file.\n"
+    "For cordata files, a Mii ID can be specified in hexadecimal in the file name, otherwise a random one will be used.\n"
+    "For example \"7C118DA34ADB46CB8FFC083BD00DC111.coredata\"\n"
     , true));
-
 
     const fs::path import_path = "/MiiPort/miis";
 
