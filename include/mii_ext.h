@@ -1,3 +1,4 @@
+#pragma once
 #include <switch.h>
 
 typedef struct {  /* charInfo */
@@ -165,6 +166,102 @@ typedef struct {
     u8 unused[2];
     u8 hmac_sha256[0x20]; /* key found in sdb main. Look at database export function */
 } NFIF;
+
+typedef struct __attribute__((__packed__)) {
+    u32 MiiVersion:8;
+    u32 Copyable:1;
+    u32 NgWord:1;
+    u32 RegionMove:2;
+    u32 FontRegion:2;
+    u32 Reserved0:2;
+    u32 RoomIndex:4;
+    u32 PositionInRoom:4;
+    u32 AuthorType:4;
+    u32 BirthPlatform:3;
+    u32 Reserved1:1;
+
+    u64 AuthorId;
+    u8 CreateId[10];
+    u16 Reserved2;
+
+    u16 Gender:1;
+    u16 BirthMonth:4;
+    u16 BirthDay:5;
+    u16 FavoriteColor:4;
+    u16 Favorite:1;
+    u16 Padding0:1;
+
+    u8 Name[20];
+    u8 Height;
+    u8 Build;
+
+    u16 Localonly:1;
+    u16 FaceType:4;
+    u16 FaceColor:3;
+    u16 FaceTex:4;
+    u16 FaceMake:4;
+
+    u16 HairType:8;
+    u16 HairColor:3;
+    u16 HairFlip:1;
+    u16 Padding1:4;
+
+    u16 EyeType:6;
+    u16 EyeColor:3;
+    u16 EyeScale:4;
+    u16 EyeAspect:3;
+
+    u16 EyeRotate:5;
+    u16 EyeX:4;
+    u16 EyeY:5;
+    u16 Padding2:2;
+
+    u16 EyebrowType:5;
+    u16 EyebrowColor:3;
+    u16 EyebrowScale:4;
+    u16 EyebrowAspect:3;
+    u16 Padding3:1;
+
+    u16 EyebrowRotate:5;
+    u16 EyebrowX:4;
+    u16 EyebrowY:5;
+    u16 Padding4:2;
+
+    u16 NoseType:5;
+    u16 NoseScale:4;
+    u16 NoseY:5;
+    u16 Padding5:2;
+
+    u16 MouthType:6;
+    u16 MouthColor:3;
+    u16 MouthScale:4;
+    u16 MouthAspect:3;
+
+    u16 MouthY:5;
+    u16 MustacheType:3;
+    u16 Padding6:8;
+
+    u16 BeardType:3;
+    u16 BeardColor:3;
+    u16 BeardScale:4;
+    u16 BeardY:5;
+    u16 Padding7:1;
+
+    u16 GlassType:4;
+    u16 GlassColor:3;
+    u16 GlassScale:4;
+    u16 GlassY:5;
+
+    u16 MoleType:1;
+    u16 MoleScale:4;
+    u16 MoleX:5;
+    u16 MoleY:5;
+    u16 Padding8:1;
+
+    u8 CreatorName[20];
+    u16 Padding9;
+    u16 Crc;
+} ver3StoreData;
 
 Result miiDatabaseExport(MiiDatabase *db, NFIF* out_buffer) {
     return serviceDispatch(&db->s, 19,

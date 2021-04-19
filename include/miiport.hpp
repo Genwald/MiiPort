@@ -6,8 +6,9 @@ namespace fs = std::filesystem;
 
 #include <switch.h>
 
-#include <mii_ext.h>
-#include <crc.hpp>
+#include "mii_ext.h"
+#include "convert_mii.h"
+#include "mii_qr.h"
 
 void notifyError(Result res) {
     std::stringstream ss;
@@ -93,71 +94,6 @@ void stringToLower(std::string *str) {
         [](unsigned char c){ return std::tolower(c); });
 }
 
-void coreDataToStoreData(const coreData* in, const MiiCreateId* id, storeData* out) {
-    out->core_data = *in;
-    out->create_id = *id;
-    out->crc16 = crc16LE(out, sizeof(storeData) - (sizeof(u16)*2));
-
-    Uuid device_id;
-    setsysGetMiiAuthorId(&device_id);
-    int device_id_crc = crc16(&device_id, sizeof(device_id));
-    out->crc16_device =  crc16LE(out, sizeof(storeData) - sizeof(u16), device_id_crc);
-}
-
-void charInfoToCoreData(const charInfo* in, coreData* out, MiiCreateId* id_out) {
-    *id_out = in->create_id;
-    memcpy(out->nickname, in->nickname, 10 * sizeof(char16_t));
-    out->font_region = in->font_region;
-    out->favorite_color = in->favorite_color;
-    out->gender = in->gender;
-    out->height = in->height;
-    out->build = in->build;
-    out->type = in->type;
-    out->region_move = in->region_move;
-    out->faceline_type = in->faceline_type;
-    out->faceline_color = in->faceline_color;
-    out->faceline_wrinkle = in->faceline_wrinkle;
-    out->faceline_make = in->faceline_make;
-    out->hair_type = in->hair_type;
-    out->hair_color = in->hair_color;
-    out->hair_flip = in->hair_flip;
-    out->eye_type = in->eye_type;
-    out->eye_color = in->eye_color;
-    out->eye_scale = in->eye_scale;
-    out->eye_aspect = in->eye_aspect;
-    out->eye_rotate = in->eye_rotate;
-    out->eye_x = in->eye_x;
-    out->eye_y = in->eye_y;
-    out->eyebrow_type = in->eyebrow_type;
-    out->eyebrow_color = in->eyebrow_color;
-    out->eyebrow_scale = in->eyebrow_scale;
-    out->eyebrow_aspect = in->eyebrow_aspect;
-    out->eyebrow_rotate = in->eyebrow_rotate;
-    out->eyebrow_x = in->eyebrow_x;
-    out->eyebrow_y = in->eyebrow_y - 3; // y in coredata is 3 less than true value
-    out->nose_type = in->nose_type;
-    out->nose_scale = in->nose_scale;
-    out->nose_y = in->nose_y;
-    out->mouth_type = in->mouth_type;
-    out->mouth_color = in->mouth_color;
-    out->mouth_scale = in->mouth_scale;
-    out->mouth_aspect = in->mouth_aspect;
-    out->mouth_y = in->mouth_y;
-    out->beard_color = in->beard_color;
-    out->beard_type = in->beard_type;
-    out->mustache_type = in->mustache_type;
-    out->mustache_scale = in->mustache_scale;
-    out->mustache_y = in->mustache_y;
-    out->glass_type = in->glass_type;
-    out->glass_color = in->glass_color;
-    out->glass_scale = in->glass_scale;
-    out->glass_y = in->glass_y;
-    out->mole_type = in->mole_type;
-    out->mole_scale = in->mole_scale;
-    out->mole_x = in->mole_x;
-    out->mole_y = in->mole_y;
-}
-
 int strToCreateId(const std::string& hex, MiiCreateId *id) {
     for (unsigned int i = 0; i < sizeof(MiiCreateId); i++) {
         const char* byteStr = hex.substr(i*2, 2).c_str();
@@ -167,19 +103,6 @@ int strToCreateId(const std::string& hex, MiiCreateId *id) {
         id->uuid.uuid[i] = byte;
     }
     return true;
-}
-
-void makeRandCreateId(MiiCreateId *out) {
-    for(u64 i = 0; i<sizeof(MiiCreateId); i++) {
-        out->uuid.uuid[i] = rand()%0xFF;
-    }
-    /* 
-    * These two leftmost bits must be 0b10 for the ID to be valid.
-    * The console may generate the ID differently to assure this,
-    * but we just set the bits.
-    */
-    out->uuid.uuid[8] &= 0b1011'1111;
-    out->uuid.uuid[8] |= 0b1000'0000;
 }
 
 Result addOrReplaceStoreData(const storeData *input) {
@@ -338,6 +261,14 @@ Result miiDbAddOrReplaceCharInfoFromFile(const char* file_path) {
     return addOrReplaceStoreDataWithPrompt(&new_data);
 }
 
+Result importMiiQr(const char* path) {
+    ver3StoreData ver3mii;
+    storeData mii;
+    parseMiiQr(path, &ver3mii);
+    ver3StoreDataToStoreData(&ver3mii, &mii);
+    return addOrReplaceStoreData(&mii);
+}
+
 Result importMiiFile(fs::path file_path) {
     std::string ext = file_path.extension().string();
     stringToLower(&ext);
@@ -355,6 +286,9 @@ Result importMiiFile(fs::path file_path) {
     }
     else if(ext == ".storedata") {
         res = miiDbAddOrReplaceStoreDataFromFile(file_path.c_str());
+    }
+    else if(ext == ".jpg" || ext == ".jpeg") {
+        res = importMiiQr(file_path.c_str());
     }
     else {
         // todo: better custom results? Use N's format with module number and description number?
