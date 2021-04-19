@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 #include "mii_ext.h"
 #include "convert_mii.h"
 #include "mii_qr.h"
+#include "errors.h"
 
 void notifyError(Result res) {
     std::stringstream ss;
@@ -33,12 +34,27 @@ void importNotify(Result res) {
             brls::Application::notify("Improper file format");
             break;
         }
-        // custom result: showing popup
-        case 0xFFFFFFF1: {
+        case SHOWING_POPUP: {
             break;
         }
-        case 0xFFFFFFFF: {
+        case UNSUPPORTED_EXT: {
             brls::Application::notify("File extension not recognized");
+            break;
+        }
+        case NO_QR: {
+            brls::Application::notify("No QR code found");
+            break;
+        }
+        case QR_DECODE_FAIL: {
+            brls::Application::notify("QR decoding failed");
+            break;
+        }
+        case AES_CCM_FAILED: {
+            brls::Application::notify("Mii data decryption failed");
+            break;
+        }
+        case JPEG_DECODE_FAIL: {
+            brls::Application::notify("Jpeg decoding failed");
             break;
         }
         default: {
@@ -153,7 +169,7 @@ Result addOrReplaceStoreDataWithPrompt(storeData *input) {
     // duplicate create ID found
     if(idx != -1) {
         showDupeCreateIDPopup(input);
-        res = 0xFFFFFFF1;
+        res = SHOWING_POPUP;
     }
     else {
         res = miiDatabaseAddOrReplace(&DbService, input);
@@ -264,7 +280,11 @@ Result miiDbAddOrReplaceCharInfoFromFile(const char* file_path) {
 Result importMiiQr(const char* path) {
     ver3StoreData ver3mii;
     storeData mii;
-    parseMiiQr(path, &ver3mii);
+    Result res;
+    res = parseMiiQr(path, &ver3mii);
+    if(R_FAILED(res)) {
+        return res;
+    }
     ver3StoreDataToStoreData(&ver3mii, &mii);
     return addOrReplaceStoreData(&mii);
 }
@@ -291,9 +311,7 @@ Result importMiiFile(fs::path file_path) {
         res = importMiiQr(file_path.c_str());
     }
     else {
-        // todo: better custom results? Use N's format with module number and description number?
-        // No matching extension
-        return 0xFFFFFFFF;
+        return UNSUPPORTED_EXT;
     }
     return res;
 }
