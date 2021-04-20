@@ -1,8 +1,6 @@
 #include "quirc.h"
 #include "jpeglib.h"
 #include "turbojpeg.h"
-#include <mbedtls/config.h>
-#include <mbedtls/cipher.h>
 #include <mbedtls/ccm.h>
 #include <mbedtls/error.h>
 #include <switch/types.h>

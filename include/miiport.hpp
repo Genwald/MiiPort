@@ -300,7 +300,6 @@ Result importMiiFile(fs::path file_path) {
     else if(ext == ".nfif") {
         res = miiDbImportFromFile(file_path.c_str());
     }
-    // drop coredata file support? Or feature flag? Or just keep it and don't advertise it?
     else if(ext == ".coredata") {
         res = miiDbAddOrReplaceCoreDataFromFile(file_path.c_str());
     }
