@@ -10,20 +10,78 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <fstream>
+#include <cctype>
 #include <iomanip>
 #include <sys/stat.h>
 
-const u32 MII_QR_KEY_SIZE = 0x10;
-const u8 MII_QR_KEY[MII_QR_KEY_SIZE] = {REMOVED};
+const char* QR_KEY_FILE_PATH = "/MiiPort/qrkey.txt";
+const int QR_DATA_SIZE = 0x58;
+typedef struct {
+    u64 nonce;
+    u8 enc_data[QR_DATA_SIZE];
+    u8 ccm_mac[0x10];
+} miiQrData;
 
-int aesCcmDecrypt(const void* in, void* out, int size, const void* nonce, int nonce_size) {
+const u32 MII_QR_KEY_CRC32 = 0xb1cdb267;
+typedef struct {
+    u8 key[0x10];
+} miiQrKey;
+
+int hex2int(char ch) {
+    if (ch >= '0' && ch <= '9')
+        return ch - '0';
+    if (ch >= 'A' && ch <= 'F')
+        return ch - 'A' + 10;
+    if (ch >= 'a' && ch <= 'f')
+        return ch - 'a' + 10;
+    return -1;
+}
+
+bool getMiiKeyFromTxtFile(const char* path, miiQrKey* key_out) {
+    const int str_size = 99;
+    char str[str_size];
+    std::stringstream ss;
+    std::ifstream key_file(path);
+    if(key_file.fail()) {
+        key_file.close();
+        return false;
+    }
+    key_file.getline(str, str_size);
+    key_file.close();
+    u32 i = 0;
+    u32 j = 0;
+    while(true) {
+        if(isxdigit(str[i]) && isxdigit(str[i+1]) && j < sizeof(miiQrKey)) {
+            ((u8*)key_out)[j] = (hex2int(str[i]) << 4) | hex2int(str[i+1]);
+            j++;
+            i++;
+            if(j >= sizeof(miiQrKey)) {
+                break;
+            }
+        }
+        i++;
+        if( (str[i] == 0 && j < sizeof(miiQrKey)) ||
+            i >= str_size) {
+            return false;
+        }
+    }
+    if(crc32Calculate(key_out, sizeof(miiQrKey)) == MII_QR_KEY_CRC32) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, const int nonce_size, const void* key, const int key_size) {
     int ret = 0;
     mbedtls_ccm_context ctx;
     mbedtls_ccm_init(&ctx);
     ret = mbedtls_ccm_setkey(&ctx,
         MBEDTLS_CIPHER_ID_AES,
-        MII_QR_KEY,
-        MII_QR_KEY_SIZE * 8
+        (unsigned char*)key,
+        key_size * 8
     );
     if (ret) {
         char err[100] = {0};
@@ -51,14 +109,6 @@ int aesCcmDecrypt(const void* in, void* out, int size, const void* nonce, int no
     return 0;
 }
 
-const int QR_DATA_SIZE = 0x58;
-const int CCM_MAC_SIZE = 0x10;
-typedef struct {
-    u64 nonce;
-    u8 enc_data[QR_DATA_SIZE];
-    u8 ccm_mac[CCM_MAC_SIZE];
-} miiQrData;
-
 Result decyptMiiQrData(miiQrData* data, ver3StoreData* out) {
     int err;
     u8 decrypted_data[QR_DATA_SIZE];
@@ -69,7 +119,11 @@ Result decyptMiiQrData(miiQrData* data, ver3StoreData* out) {
     memcpy(nonce, &data->nonce, nonce_size);
     memset(nonce + nonce_size, 0, padded_nonce_size - nonce_size);
 
-    err = aesCcmDecrypt(&data->enc_data, decrypted_data, QR_DATA_SIZE, &nonce, padded_nonce_size);
+    miiQrKey key;
+    if(!getMiiKeyFromTxtFile(QR_KEY_FILE_PATH, &key)){
+        return BAD_KEY_FILE;
+    }
+    err = aesCcmDecrypt(&data->enc_data, decrypted_data, QR_DATA_SIZE, &nonce, padded_nonce_size, &key, sizeof(key));
     if(err != 0) {
         return AES_CCM_FAILED;
     }
@@ -92,6 +146,7 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
 
     FILE* jpg_file = fopen(path, "r");
     fread(jpg_data, 1, jpg_size, jpg_file);
+    fclose(jpg_file);
 
     tjhandle handle = tjInitDecompress();
     if(handle == nullptr) {

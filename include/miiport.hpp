@@ -57,6 +57,10 @@ void importNotify(Result res) {
             brls::Application::notify("Jpeg decoding failed");
             break;
         }
+        case BAD_KEY_FILE: {
+            brls::Application::notify("Incorrect Mii QR key.\nSee \"QR key\" tab.");
+            break;
+        }
         default: {
             notifyError(res);
             break;
