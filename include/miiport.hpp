@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 
 #include "mii_ext.h"
 #include "convert_mii.h"
-#include "mii_qr.h"
+#include "mii_qr.hpp"
 #include "errors.h"
 
 void notifyError(Result res) {
