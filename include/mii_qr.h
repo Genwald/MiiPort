@@ -1,11 +1,11 @@
 #include "quirc.h"
-#include "jpeglib.h"
 #include "turbojpeg.h"
 #include <mbedtls/ccm.h>
 #include <mbedtls/error.h>
 #include <switch/types.h>
+#include <switch/crypto/crc.h>
 #include "errors.h"
-
+#include "mii_ext.h"
 
 #include <cstdio>
 #include <cstring>
@@ -38,40 +38,44 @@ int hex2int(char ch) {
     return -1;
 }
 
+// returns false if the buffer could not be filled
+bool findBytesInText(const char* str, void* out, size_t size) {
+    size_t i = 0;
+    size_t bytes_found = 0;
+    while(true) {
+        if(str[i+1] == 0 || str[i] == 0) {
+            return false;
+        }
+        if(isxdigit(str[i]) && isxdigit(str[i+1])) {
+            ((u8*)out)[bytes_found] = (hex2int(str[i]) << 4) | hex2int(str[i+1]);
+            bytes_found++;
+            i++;
+            if(bytes_found >= size) {
+                return true;
+            }
+        }
+        i++;
+    }
+}
+
 bool getMiiKeyFromTxtFile(const char* path, miiQrKey* key_out) {
-    const int str_size = 99;
-    char str[str_size];
-    std::stringstream ss;
+    std::string str;
     std::ifstream key_file(path);
     if(key_file.fail()) {
         key_file.close();
         return false;
     }
-    key_file.getline(str, str_size);
+    std::getline(key_file, str);
     key_file.close();
-    u32 i = 0;
-    u32 j = 0;
-    while(true) {
-        if(isxdigit(str[i]) && isxdigit(str[i+1]) && j < sizeof(miiQrKey)) {
-            ((u8*)key_out)[j] = (hex2int(str[i]) << 4) | hex2int(str[i+1]);
-            j++;
-            i++;
-            if(j >= sizeof(miiQrKey)) {
-                break;
-            }
-        }
-        i++;
-        if( (str[i] == 0 && j < sizeof(miiQrKey)) ||
-            i >= str_size) {
-            return false;
-        }
-    }
-    if(crc32Calculate(key_out, sizeof(miiQrKey)) == MII_QR_KEY_CRC32) {
-        return true;
-    }
-    else {
+    
+    if(!findBytesInText(str.c_str(), key_out, sizeof(miiQrKey))) {
         return false;
     }
+
+    if( !(crc32Calculate(key_out, sizeof(miiQrKey)) == MII_QR_KEY_CRC32) ) {
+        return false;
+    }
+    return true;
 }
 
 int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, const int nonce_size, const void* key, const int key_size) {
