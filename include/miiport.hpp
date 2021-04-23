@@ -58,7 +58,7 @@ void importNotify(Result res) {
             break;
         }
         case BAD_KEY_FILE: {
-            brls::Application::notify("Incorrect Mii QR key.\nSee \"QR key\" tab.");
+            brls::Application::notify("Incorrect Mii QR key.\nSee \"QR key info\" tab.");
             break;
         }
         default: {

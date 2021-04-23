@@ -85,6 +85,17 @@ int main(int argc, char* argv[]) {
     "For example \"7C118DA34ADB46CB8FFC083BD00DC111.coredata\"\n"
     , true));
 
+    FocusList* aboutQrKey = new FocusList(false);
+    aboutQrKey->addView(new brls::Header("QR key info", false));
+    aboutQrKey->addView(new brls::Label(brls::LabelStyle::REGULAR, 
+    "In order to import Miis from a qr code, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes.\n\n"
+    "You can find this on the internet by searching for \"Mii QR key\".\n"
+    "This program looks for the key in hex in the file \"/MiiPort/qrkey.txt\".\n"
+    "It will accept it in a variety of formats such as:\n"
+    "\"[0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA]\"\n"
+    "or \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n"
+    , true));
+
     const fs::path import_path = "/MiiPort/miis";
 
     FocusList* fileList = new FocusList(true);
@@ -167,6 +178,7 @@ int main(int argc, char* argv[]) {
     rootFrame->addTab("Export", exportList);
     rootFrame->addSeparator();
     rootFrame->addTab("About", aboutList);
+    rootFrame->addTab("QR key info", aboutQrKey);
     
     brls::Application::pushView(rootFrame);
 
