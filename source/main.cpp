@@ -103,6 +103,9 @@ int main(int argc, char* argv[]) {
     // iterator does not give unicode paths at all
     for(auto& entry: fs::directory_iterator(import_path)) {
         brls::ListItem* fileItem = new brls::ListItem(entry.path().filename());
+        if(entry.path().extension() == ".jpg") {
+            fileItem->setThumbnail(entry.path());
+        }
         fileItem->getClickEvent()->subscribe([path{std::move(entry.path())}](brls::View* view) {
             Result res = importMiiFile(path);
             importNotify(res);
