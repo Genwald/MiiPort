@@ -298,10 +298,10 @@ Result importMiiFile(fs::path file_path) {
     stringToLower(&ext);
     Result res = 0;
     
-    if(ext == ".charinfo") {
+    if(ext == ".charinfo" || ext == ".bin") {
         res = miiDbAddOrReplaceCharInfoFromFile(file_path.c_str());
     }
-    else if(ext == ".nfif") {
+    else if(ext == ".nfif" || ext == ".dat") {
         res = miiDbImportFromFile(file_path.c_str());
     }
     else if(ext == ".coredata") {
