@@ -16,14 +16,8 @@ const u8 Ver3MouthColorTable[5] = {19, 20, 21, 22, 23};
 const u8 Ver3GlassColorTable[7] = {8, 14, 15, 16, 17, 0};
 
 void makeRandCreateId(MiiCreateId *out) {
-    for(u64 i = 0; i<sizeof(MiiCreateId); i++) {
-        out->uuid.uuid[i] = rand()%0xFF;
-    }
-    /* 
-    * These two leftmost bits must be 0b10 for the ID to be valid.
-    * The console may generate the ID differently to assure this,
-    * but we just set the bits.
-    */
+    randomGet(out->uuid.uuid, sizeof(MiiCreateId));
+    //These two leftmost bits must be 0b10 for the ID to be valid.
     out->uuid.uuid[8] &= 0b1011'1111;
     out->uuid.uuid[8] |= 0b1000'0000;
 }
