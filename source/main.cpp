@@ -100,13 +100,16 @@ int main(int argc, char* argv[]) {
     FocusList* fileList = new FocusList(true);
 
     fs::create_directories(import_path);
+    std::vector<fs::directory_entry> dirEntVec;
     // iterator does not give unicode paths at all
-    for(auto& entry: fs::directory_iterator(import_path)) {
-        brls::ListItem* fileItem = new brls::ListItem(entry.path().filename());
-        if(entry.path().extension() == ".jpg") {
-            fileItem->setThumbnail(entry.path());
+    std::copy(fs::directory_iterator(import_path), fs::directory_iterator(), std::back_inserter(dirEntVec));
+    std::sort(dirEntVec.begin(), dirEntVec.end());
+    for(fs::path path: dirEntVec) {
+        brls::ListItem* fileItem = new brls::ListItem(path.filename());
+        if(path.extension() == ".jpg") {
+            fileItem->setThumbnail(path);
         }
-        fileItem->getClickEvent()->subscribe([path{std::move(entry.path())}](brls::View* view) {
+        fileItem->getClickEvent()->subscribe([path{std::move(path)}](brls::View* view) {
             Result res = importMiiFile(path);
             importNotify(res);
         });
