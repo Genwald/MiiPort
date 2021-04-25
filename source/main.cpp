@@ -44,7 +44,6 @@ class FocusList : public brls::List {
 
 const std::string TITLE = "MiiPort";
 
-// todo: add button to open official mii menu, compare with swkbdShow in libnx and nn::mii::ShowMiiEdit in sdk
 int main(int argc, char* argv[]) {
     brls::Logger::setLogLevel(brls::LogLevel::INFO);
 
@@ -179,6 +178,10 @@ int main(int argc, char* argv[]) {
     rootFrame->addSeparator();
     rootFrame->addTab("About", aboutList);
     rootFrame->addTab("QR key info", aboutQrKey);
+    rootFrame->registerAction("Show Mii applet", brls::Key::X, [] {
+        miiLaShowMiiEdit(MiiSpecialKeyCode_Special);
+        return true;
+    });
     
     brls::Application::pushView(rootFrame);
 
