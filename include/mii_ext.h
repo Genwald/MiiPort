@@ -281,14 +281,15 @@ Result miiDatabaseAddOrReplace(MiiDatabase *db, const storeData *input) {
     return serviceDispatchIn(&db->s, 13, *input);
 }
 
-Result miiDatabaseFindIndex(MiiDatabase *db, const MiiCreateId* id, bool idk, int* out_idx) {
+Result miiDatabaseFindIndex(MiiDatabase *db, const MiiCreateId* id, bool include_special, int* out_idx) {
     const struct {
         MiiCreateId id;
-        bool idk;
-    } in = {*id, idk};
+        bool include_special;
+    } in = {*id, include_special};
     return serviceDispatchInOut(&db->s, 11, in, *out_idx);
 }
 
+// needs changes
 Result miiDatabaseGetIndex(MiiDatabase *db, int idx, charInfo* out) {
     return serviceDispatchInOut(&db->s, 21, idx, out);
 }
