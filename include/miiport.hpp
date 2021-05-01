@@ -17,7 +17,7 @@ void notifyError(Result res) {
     brls::Application::notify(ss.str());
 }
 
-void importNotify(Result res) {
+void errorNotify(Result res) {
     switch(res) {
         case 0: {
             brls::Application::notify("Imported!");
@@ -32,6 +32,11 @@ void importNotify(Result res) {
         // bad nfif format
         case 0xe07e: {
             brls::Application::notify("Improper file format");
+            break;
+        }
+        // debug only
+        case 0x1987e: {
+            brls::Application::notify("Must enable DB testing mode");
             break;
         }
         case SHOWING_POPUP: {
@@ -141,7 +146,7 @@ void showDupeCreateIDPopup(storeData *input){
     brls::GenericEvent::Callback repalceCallback = [dialog, input{*input}](brls::View* view) {
         Result res = addOrReplaceStoreData(&input);
 
-        importNotify(res);
+        errorNotify(res);
         dialog->close();
     };
     brls::GenericEvent::Callback randomCallback = [dialog, input{*input}](brls::View* view) mutable {
@@ -150,7 +155,7 @@ void showDupeCreateIDPopup(storeData *input){
         coreDataToStoreData(&input.core_data, &input.create_id, &input);
         Result res = addOrReplaceStoreData(&input);
 
-        importNotify(res);
+        errorNotify(res);
         dialog->close();
     };
 

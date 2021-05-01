@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
         }
         fileItem->getClickEvent()->subscribe([path{std::move(path)}](brls::View* view) {
             Result res = importMiiFile(path);
-            importNotify(res);
+            errorNotify(res);
         });
         fileList->addView(fileItem);
     }
@@ -128,9 +128,7 @@ int main(int argc, char* argv[]) {
         fs::path path = import_path / "exportedDB.NFIF";
         Result res = miiDbExportToFile(path.c_str());
         if(R_FAILED(res)) {
-            std::stringstream ss;
-            ss << "Export error: 0x" << std::hex << res;
-            brls::Application::notify(ss.str());
+            errorNotify(res);
         }
         else {
             brls::Application::notify("Exported!");
