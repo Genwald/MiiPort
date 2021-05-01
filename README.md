@@ -11,7 +11,17 @@ A Nintendo Switch homebrew for importing and exporting Miis.
 Place Mii character files in `sd:/MiiPort/Miis/` with a file extension that corresponds to their format.  
 currently supported import formats include:
 - jpeg images of Mii QR codes
+    - requires the mii QR key
 - charinfo
+    - can also use the `.bin` extension
+- NFIF
+    - can also use the `.dat` extension
 - coredata
 - storedata
-- NFIF
+
+## QR key
+In order to import Miis from a qr code, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes. You can find this on the internet by searching for "Mii QR key".  
+This program looks for the key in hex in the file `/MiiPort/qrkey.txt`.
+It will accept it in a variety of formats such as:
+`[0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA]`
+or `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`
