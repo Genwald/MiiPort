@@ -2,6 +2,14 @@
 A Nintendo Switch homebrew for importing and exporting Miis.
 ## Installation
 [Download a release](https://github.com/Genwald/MiiPort/releases/latest) and then place the .nro file at `sd:/switch/MiiPort.nro`
+
+
+Some features require the setting 
+```
+[mii]
+is_db_test_mode_enabled=u8!0x1
+```
+which can be set in `/atmosphere/config/system_settings.ini`
 ## Screenshots
 <img alt="Import tab" src="https://user-images.githubusercontent.com/11589515/116328811-6dd88380-a78f-11eb-841d-b06d5ed3f587.jpg" width="65%">
 <img alt="Export tab"  src="https://user-images.githubusercontent.com/11589515/116329846-d163b080-a791-11eb-917f-1d4921a54545.jpg" width="65%">
