@@ -1,0 +1,33 @@
+
+pkgname=switch-libquirc
+pkgver=1.1
+pkgrel=1
+pkgdesc='QR decoder library (Nintendo Switch port)'
+arch=('any')
+url='https://github.com/dlbeer/quirc'
+license=('ISC')
+options=(!strip libtool staticlibs)
+source=("https://github.com/dlbeer/quirc/archive/refs/tags/v$pkgver.zip")
+sha256sums=('e2b7a09f81d9436fc0c66c9412548113f8194fa2ddd08ddd87fc0844d6daaa63')
+makedepends=('devkitpro-pkgbuild-helpers')
+groups=('switch-portlibs')
+
+build() {
+  cd quirc-$pkgver
+  
+  source /opt/devkitpro/switchvars.sh
+  
+  make CC=${TOOL_PREFIX}gcc PREFIX=${PORTLIBS_PREFIX} libquirc.so libquirc.a
+}
+
+package() {
+  cd quirc-$pkgver
+  
+  source /opt/devkitpro/switchvars.sh
+
+  install -Dm 0644 -t $pkgdir${PORTLIBS_PREFIX}/include lib/quirc.h
+  install -Dm 0644 -t $pkgdir${PORTLIBS_PREFIX}/lib libquirc.a
+
+  install -d "$pkgdir"/opt/devkitpro/portlibs/switch/licenses/$pkgname
+  install LICENSE "$pkgdir"/opt/devkitpro/portlibs/switch/licenses/$pkgname/LICENSE
+}
