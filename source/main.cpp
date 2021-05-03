@@ -3,7 +3,11 @@
 #include <cstring>
 
 #include <switch.h>
+// needed to access scrollview private members in TopScrollList
+// todo: don't do this. Investigate alternatives. Fork borealis? Maybe possible on newer version?
+#define private protected
 #include <borealis.hpp>
+#undef private
 
 #include "miiport.hpp"
 
@@ -22,6 +26,7 @@ void deinit() {
     setsysExit();
 }
 
+// modify so that the list can be made unfocusable, useful if the list has no focusable children.
 class FocusList : public brls::List {
     private:
         bool allowFocus = false;
@@ -39,6 +44,77 @@ class FocusList : public brls::List {
             else {
                 return nullptr;
             }
+        }
+};
+
+// modify so that the view is scrolled so that focused item is at the top instead of the middle of the screen.
+class TopScrollList : public brls::List {
+    bool updateScrolling(bool animated) {
+        // Don't scroll if layout hasn't been called yet
+        if (!this->ready || !this->contentView)
+            return false;
+
+        float contentHeight = (float)this->contentView->getHeight();
+
+        // Ensure content is laid out too
+        if (contentHeight == 0)
+            return false;
+
+        brls::View* focusedView = brls::Application::getCurrentFocus();
+        // Edited here so that the focused element is at the top of the view
+        float newScroll = -(this->scrollY * contentHeight) - ((float)(focusedView->getY() - 15) - (float)this->getY());
+
+        // Bottom boundary
+        if ((float)this->y + newScroll + contentHeight < (float)this->bottomY)
+            newScroll = (float)this->height - contentHeight;
+
+        // Top boundary
+        if (newScroll > 0.0f)
+            newScroll = 0.0f;
+
+        // Apply 0.0f -> 1.0f scale
+        newScroll = abs(newScroll) / contentHeight;
+
+        //Start animation
+        this->startScrolling(animated, newScroll);
+
+        return true;
+    }
+
+    // override so that my updateScrolling gets used
+    void onChildFocusGained(brls::View* child) override {
+        if (!this->ready)
+            return;
+
+        if (child != this->contentView)
+            return;
+
+        // Start scrolling
+        updateScrolling(true);
+
+        brls::View::onChildFocusGained(child);
+    }
+};
+
+// modify brls::Header so that they can be focused, but don't highlight
+class FocusHeader : public brls::Header {
+    // make focusable
+    brls::View* getDefaultFocus() override {
+        return this;
+    }
+    public:
+        FocusHeader(std::string label, bool separator = true, std::string sublabel = "") 
+            : Header(label, separator, sublabel)
+        {}
+
+        // no highlight
+        void onFocusGained() override {
+            this->focused = true;
+
+            this->focusEvent.fire(this);
+
+            if (this->hasParent())
+                this->getParent()->onChildFocusGained(this);
         }
 };
 
@@ -67,15 +143,16 @@ int main(int argc, char* argv[]) {
     rootFrame->setTitle(TITLE);
     rootFrame->setIcon(BOREALIS_ASSET("icon/MiiPort.png"));
 
-    FocusList* aboutList = new FocusList(false);
+    TopScrollList* aboutList = new TopScrollList();
 
-    aboutList->addView(new brls::Header("About", false));
+    aboutList->addView(new FocusHeader("About", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
     "A tool to import and export Miis in a variety of formats.\n"
     "Supports importing the NFIF, charinfo, coredata and storedata formats.\n"
     "Exports full DBs in NFIF and individual characters in charinfo."
     , true));
-    aboutList->addView(new brls::Header("How to use", false));
+
+    aboutList->addView(new FocusHeader("How to use", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
     "Place Mii files in \"sd:/MiiPort/miis/\".\n"
     "Give files a file extension that corresponds to their format i.e. \".charinfo\".\n"
@@ -84,9 +161,8 @@ int main(int argc, char* argv[]) {
     "For example \"7C118DA34ADB46CB8FFC083BD00DC111.coredata\"\n"
     , true));
 
-    FocusList* aboutQrKey = new FocusList(false);
-    aboutQrKey->addView(new brls::Header("QR key info", false));
-    aboutQrKey->addView(new brls::Label(brls::LabelStyle::REGULAR, 
+    aboutList->addView(new FocusHeader("QR key info", false));
+    aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
     "In order to import Miis from a qr code, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes.\n\n"
     "You can find this on the internet by searching for \"Mii QR key\".\n"
     "This program looks for the key in hex in the file \"/MiiPort/qrkey.txt\".\n"
@@ -146,7 +222,7 @@ int main(int argc, char* argv[]) {
         charInfo miis[max_miis];
         res = getCharInfos(miis, max_miis, &count);
         if(R_FAILED(res)) {
-            notifyError(res);
+            errorNotify(res);
         }
         else {
             for(int i = 0; i < count; i++) {
@@ -181,7 +257,6 @@ int main(int argc, char* argv[]) {
     rootFrame->addTab("Export", exportList);
     rootFrame->addSeparator();
     rootFrame->addTab("About", aboutList);
-    rootFrame->addTab("QR key info", aboutQrKey);
     rootFrame->registerAction("Show Mii applet", brls::Key::X, [] {
         miiLaShowMiiEdit(MiiSpecialKeyCode_Special);
         return true;

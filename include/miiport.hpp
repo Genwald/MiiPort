@@ -11,16 +11,16 @@ namespace fs = std::filesystem;
 #include "mii_qr.hpp"
 #include "errors.h"
 
-void notifyError(Result res) {
+void errorCodeNotify(Result res) {
     std::stringstream ss;
     ss << "Import error: 0x" << std::hex << res;
     brls::Application::notify(ss.str());
 }
 
-void errorNotify(Result res) {
+void errorNotify(Result res, std::string success_message = "Imported!") {
     switch(res) {
         case 0: {
-            brls::Application::notify("Imported!");
+            brls::Application::notify(success_message);
             break;
         }
         case 0xa7e: {
@@ -63,11 +63,11 @@ void errorNotify(Result res) {
             break;
         }
         case BAD_KEY_FILE: {
-            brls::Application::notify("Incorrect Mii QR key.\nSee \"QR key info\" tab.");
+            brls::Application::notify("Incorrect Mii QR key.\nSee \"About\" tab.");
             break;
         }
         default: {
-            notifyError(res);
+            errorCodeNotify(res);
             break;
         }
     }
@@ -221,16 +221,7 @@ Result miiDbExportToFile(const char* file_path) {
     NFIF Db;
     Result res = exportNFIF(&Db);
     if(R_FAILED(res)) return res;
-    writeToFile(file_path, &Db);
-    
-    /*
-    for(int i=0; i < Db.entry_count; i++) {
-        printf("%s\n", Db.entries[i].type?"Special":"Normal");
-        wprintf(L"%.5ls", Db.entries[i].Nickname);
-        printf("\n");
-    }
-    */
-    
+    writeToFile(file_path, &Db);    
     return 0;
 }
 
