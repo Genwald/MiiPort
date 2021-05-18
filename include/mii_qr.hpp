@@ -6,6 +6,7 @@
 #include <switch/crypto/crc.h>
 #include "errors.h"
 #include "mii_ext.h"
+#include "QrCode.cpp"
 
 #include <cstdio>
 #include <cstring>
@@ -228,4 +229,39 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
     quirc_destroy(qr);
 
     return 0;
+}
+
+void generateQrRGBA(u8 *data, size_t data_size, u32 scale, u32* &out_data, int* out_width) {
+    using qrcodegen::QrCode;
+    std::vector<u8> data_vec(data, data+data_size);
+    const QrCode qr = QrCode::encodeBinary(data_vec, QrCode::Ecc::HIGH);
+    int qr_size = qr.getSize();
+    const int border = 1;
+    int width = border*2 + qr_size;
+    *out_width = width*scale;
+    size_t arr_size = *out_width * *out_width;
+    out_data = new u32 [arr_size];
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < width; y++) {
+            bool black_square = qr.getModule(x-border, y-border);
+            for (u32 scale_x=0; scale_x<scale; scale_x++) {
+                for (u32 scale_y=0; scale_y<scale; scale_y++) {
+                    size_t pos = (x*scale+scale_x)*width*scale + (y*scale+scale_y);
+                    if(pos < arr_size) {
+                        if(black_square) {
+                            // black
+                            out_data[pos] = 0xFF000000;
+                        }
+                        else {
+                            // white
+                            out_data[pos] = 0xFFFFFFFF;
+                        }
+                    }
+                    else {
+                        printf("qr tried to write out of bounds\n");
+                    }
+                }
+            }
+		}
+	}
 }

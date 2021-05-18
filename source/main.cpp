@@ -241,11 +241,22 @@ int main(int argc, char* argv[]) {
                 // todo: face icon for each Mii?
                 brls::ListItem* miiItem = new brls::ListItem(utf8_name, "",getHexStr(&miis[i].create_id));
                 miiItem->getClickEvent()->subscribe(
-                [export_path{std::move(export_path)}, mii{std::move(miis[i])}]
+                [export_path{std::move(export_path)}, mii{miis[i]}]
                 (brls::View* view) {
                     // todo: ask before replacing file?
                     writeToFile(export_path.c_str(), &mii);
                     brls::Application::notify("Exported!");
+                });
+                miiItem->registerAction("Show Mii QR", brls::Key::Y, [mii{miis[i]}] {
+                    u32* qr_RGBA = nullptr;
+                    int qr_width = 0;
+                    generateQrRGBA((u8*)mii.nickname, sizeof(char16_t) * 10, 10, qr_RGBA, &qr_width);
+                    brls::Image *qr_image = new brls::Image;
+                    qr_image->setImageRGBA((u8*)qr_RGBA, qr_width, qr_width);
+                    brls::AppletFrame* frame = new brls::AppletFrame(0,0);
+                    frame->setContentView(qr_image);
+                    brls::PopupFrame::open("QR", frame);
+                    return true;
                 });
                 exportList->addView(miiItem);
             }
