@@ -231,6 +231,7 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
     return 0;
 }
 
+// Caller must delete[] out_data 
 void generateQrRGBA(u8 *data, size_t data_size, u32 scale, u32* &out_data, int* out_width) {
     using qrcodegen::QrCode;
     std::vector<u8> data_vec(data, data+data_size);

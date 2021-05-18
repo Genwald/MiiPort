@@ -256,6 +256,7 @@ int main(int argc, char* argv[]) {
                     brls::AppletFrame* frame = new brls::AppletFrame(0,0);
                     frame->setContentView(qr_image);
                     brls::PopupFrame::open("QR", frame);
+                    delete[] qr_RGBA;
                     return true;
                 });
                 exportList->addView(miiItem);
