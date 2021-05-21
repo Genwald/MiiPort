@@ -231,8 +231,7 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
     return 0;
 }
 
-// Caller must delete[] out_data 
-void generateQrRGBA(u8 *data, size_t data_size, u32 scale, u32* &out_data, int* out_width) {
+std::unique_ptr<u32[]> generateQrRGBA(u8 *data, size_t data_size, u32 scale, int* out_width) {
     using qrcodegen::QrCode;
     std::vector<u8> data_vec(data, data+data_size);
     const QrCode qr = QrCode::encodeBinary(data_vec, QrCode::Ecc::HIGH);
@@ -241,7 +240,7 @@ void generateQrRGBA(u8 *data, size_t data_size, u32 scale, u32* &out_data, int* 
     int width = border*2 + qr_size;
     *out_width = width*scale;
     size_t arr_size = *out_width * *out_width;
-    out_data = new u32 [arr_size];
+    std::unique_ptr<u32[]> out_data(new u32[arr_size]);
     for (int x = 0; x < width; x++) {
         for (int y = 0; y < width; y++) {
             bool black_square = qr.getModule(x-border, y-border);
@@ -265,4 +264,5 @@ void generateQrRGBA(u8 *data, size_t data_size, u32 scale, u32* &out_data, int* 
             }
 		}
 	}
+    return out_data;
 }

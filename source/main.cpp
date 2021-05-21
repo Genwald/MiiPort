@@ -248,15 +248,13 @@ int main(int argc, char* argv[]) {
                     brls::Application::notify("Exported!");
                 });
                 miiItem->registerAction("Show Mii QR", brls::Key::Y, [mii{miis[i]}] {
-                    u32* qr_RGBA = nullptr;
                     int qr_width = 0;
-                    generateQrRGBA((u8*)mii.nickname, sizeof(char16_t) * 10, 10, qr_RGBA, &qr_width);
+                    std::unique_ptr<u32[]> qr_RGBA = generateQrRGBA((u8*)mii.nickname, sizeof(char16_t) * 10, 10, &qr_width);
                     brls::Image *qr_image = new brls::Image;
-                    qr_image->setImageRGBA((u8*)qr_RGBA, qr_width, qr_width);
+                    qr_image->setImageRGBA((u8*)qr_RGBA.get(), qr_width, qr_width);
                     brls::AppletFrame* frame = new brls::AppletFrame(0,0);
                     frame->setContentView(qr_image);
                     brls::PopupFrame::open("QR", frame);
-                    delete[] qr_RGBA;
                     return true;
                 });
                 exportList->addView(miiItem);
