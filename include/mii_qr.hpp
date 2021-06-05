@@ -6,7 +6,8 @@
 #include <switch/crypto/crc.h>
 #include "errors.h"
 #include "mii_ext.h"
-#include "QrCode.cpp"
+#include "QR-Code-generator/QrCode.cpp"
+#include "scope_guard/scope_guard.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -147,10 +148,10 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
     struct stat st;
     stat(path, &st);
     size_t jpg_size = st.st_size;
-    u8 *jpg_data = new u8[jpg_size];
+    std::unique_ptr<u8> jpg_data(new u8[jpg_size]);
 
     FILE* jpg_file = fopen(path, "r");
-    fread(jpg_data, 1, jpg_size, jpg_file);
+    fread(jpg_data.get(), 1, jpg_size, jpg_file);
     fclose(jpg_file);
 
     tjhandle handle = tjInitDecompress();
@@ -158,48 +159,40 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
         printf("tjInitDecompress failed\n");
         return JPEG_DECODE_FAIL;
     }
-    err = tjDecompressHeader3(handle, jpg_data, jpg_size, &w, &h, &subsamp, &colorspace);
+    const auto tj_init_guard = sg::make_scope_guard([handle]() { tjDestroy(handle); });
+
+    err = tjDecompressHeader3(handle, jpg_data.get(), jpg_size, &w, &h, &subsamp, &colorspace);
     if(err != 0) {
         printf("tjDecompressHeader3 error\n");
-        tjDestroy(handle);
         return JPEG_DECODE_FAIL;
     }
 
     qr = quirc_new();
+    const auto quirc_new_guard = sg::make_scope_guard([qr]() { quirc_destroy(qr); });
     if (!qr) {
         printf("Failed to allocate memory for QR\n");
-        tjDestroy(handle);
-        quirc_destroy(qr);
         return QR_DECODE_FAIL;
     }
     if (quirc_resize(qr, w, h) < 0) {
         printf("Failed to allocate memory for QR resize\n");
-        tjDestroy(handle);
-        quirc_destroy(qr);
         return QR_DECODE_FAIL;
     }
 
     {
         int w, h;
-
         u8 *image = quirc_begin(qr, &w, &h);
-
-        err = tjDecompress2(handle, jpg_data, jpg_size, image, w, w, h, TJPF_GRAY, TJFLAG_ACCURATEDCT);
-
+        err = tjDecompress2(handle, jpg_data.get(), jpg_size, image, w, w, h, TJPF_GRAY, TJFLAG_ACCURATEDCT);
         quirc_end(qr);
-
         if(err != 0) {
             printf("tjDecompress2 error\n");
-            tjDestroy(handle);
-            quirc_destroy(qr);
             return JPEG_DECODE_FAIL;
         }
     }
 
-    delete[] jpg_data;
-    tjDestroy(handle);
-
-    if (quirc_count(qr) > 0) {
+    if (quirc_count(qr) == 0) {
+        return NO_QR;
+    }
+    else {
         struct quirc_code code;
         struct quirc_data data;
         quirc_decode_error_t err;
@@ -209,24 +202,16 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
         err = quirc_decode(&code, &data);
         if (err != 0) {
             printf("QR decode failed: %s\n", quirc_strerror(err));
-            quirc_destroy(qr);
             return QR_DECODE_FAIL;
         }
         else {
             Result res = 0;
             res = decyptMiiQrData((miiQrData*)data.payload, out_mii);
             if(R_FAILED(res)) {
-                quirc_destroy(qr);
                 return res;
             }
         }
     }
-    else {
-        quirc_destroy(qr);
-        return NO_QR;
-    }
-
-    quirc_destroy(qr);
 
     return 0;
 }

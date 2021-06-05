@@ -72,7 +72,7 @@ LIBS	:= -lnx -lm -lturbojpeg -lquirc -lmbedcrypto
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS) $(LIBNX) $(TOPDIR)/libs/QR-Code-generator/
+LIBDIRS	:= $(PORTLIBS) $(LIBNX) $(TOPDIR)/libs/
 
 include $(TOPDIR)/$(BOREALIS_PATH)/library/borealis.mk
 

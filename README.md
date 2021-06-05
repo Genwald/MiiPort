@@ -28,7 +28,7 @@ currently supported import formats include:
 - storedata
 
 ## QR key
-In order to import Miis from a qr code, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes. You can find this on the internet by searching for "Mii QR key".  
+In order to import Miis from a qr code, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes. You can find this on the internet by searching for "Mii QR key" or "slot0x31KeyN".  
 This program looks for the key in hex in the file `/MiiPort/qrkey.txt`.
 It will accept it in a variety of formats such as:
 `[0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA]`

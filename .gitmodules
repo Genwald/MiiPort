@@ -1,3 +1,6 @@
 [submodule "libs/borealis"]
 	path = libs/borealis
 	url = https://github.com/natinusala/borealis/
+[submodule "libs/scope_guard"]
+	path = libs/scope_guard
+	url = https://github.com/ricab/scope_guard
