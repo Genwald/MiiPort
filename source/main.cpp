@@ -247,7 +247,7 @@ int main(int argc, char* argv[]) {
                     writeToFile(export_path.c_str(), &mii);
                     brls::Application::notify("Exported!");
                 });
-                miiItem->registerAction("Show Mii QR", brls::Key::Y, [mii{miis[i]}] {
+                miiItem->registerAction("Show Mii QR", brls::Key::Y, [mii{miis[i]}, name{utf8_name}] {
                     int qr_width = 0;
                     ver3StoreData qr_data;
                     charInfoToVer3StoreData(&mii, &qr_data);
@@ -258,11 +258,11 @@ int main(int argc, char* argv[]) {
                         return true;
                     }
                     brls::Image *qr_image = new brls::Image;
-                    qr_image->setScaleType(brls::ImageScaleType::VIEW_RESIZE);
+                    qr_image->setScaleType(brls::ImageScaleType::NO_RESIZE);
                     qr_image->setImageRGBA((u8*)qr_RGBA.get(), qr_width, qr_width);
                     brls::AppletFrame* frame = new brls::AppletFrame(0,0);
                     frame->setContentView(qr_image);
-                    brls::PopupFrame::open("QR", frame);
+                    brls::PopupFrame::open("QR Code", frame, "", name);
                     return true;
                 });
                 exportList->addView(miiItem);
