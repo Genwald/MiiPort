@@ -287,7 +287,7 @@ std::unique_ptr<u32[]> generateQrRGBA(u8 *data, size_t data_size, u32 scale, int
     std::vector<u8> data_vec(data, data+data_size);
     const QrCode qr = QrCode::encodeBinary(data_vec, QrCode::Ecc::HIGH);
     int qr_size = qr.getSize();
-    const int border = 3;
+    const int border = 2;
     int width = border*2 + qr_size;
     *out_width = width*scale;
     size_t arr_size = *out_width * *out_width;
@@ -297,7 +297,7 @@ std::unique_ptr<u32[]> generateQrRGBA(u8 *data, size_t data_size, u32 scale, int
             bool black_square = qr.getModule(x-border, y-border);
             for (u32 scale_x=0; scale_x<scale; scale_x++) {
                 for (u32 scale_y=0; scale_y<scale; scale_y++) {
-                    size_t pos = (x*scale+scale_x)*width*scale + (y*scale+scale_y);
+                    size_t pos = (y*scale+scale_y)*width*scale + (x*scale+scale_x);
                     if(pos < arr_size) {
                         if(black_square) {
                             // black
