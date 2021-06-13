@@ -152,7 +152,7 @@ void showDupeCreateIDPopup(storeData *input){
     brls::GenericEvent::Callback randomCallback = [dialog, input{*input}](brls::View* view) mutable {
         makeRandCreateId(&input.create_id);
         // changed data, so re-generate storedata hashes
-        coreDataToStoreData(&input.core_data, &input.create_id, &input);
+        setStoreDataCrc16(&input);
         Result res = addOrReplaceStoreData(&input);
 
         errorNotify(res);
@@ -235,7 +235,7 @@ Result miiDbAddOrReplaceStoreDataFromFile(const char* file_path) {
     storeData in_data;
     readFromFile(file_path, &in_data);
     // run this to regenerate checksums
-    coreDataToStoreData(&in_data.core_data, &in_data.create_id, &in_data);
+    setStoreDataCrc16(&in_data);
     return addOrReplaceStoreDataWithPrompt(&in_data);
 }
 

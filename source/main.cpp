@@ -249,8 +249,16 @@ int main(int argc, char* argv[]) {
                 });
                 miiItem->registerAction("Show Mii QR", brls::Key::Y, [mii{miis[i]}] {
                     int qr_width = 0;
-                    std::unique_ptr<u32[]> qr_RGBA = generateQrRGBA((u8*)mii.nickname, sizeof(char16_t) * 10, 10, &qr_width);
+                    ver3StoreData qr_data;
+                    charInfoToVer3StoreData(&mii, &qr_data);
+                    std::unique_ptr<u32[]> qr_RGBA;
+                    Result res = generateMiiQr(&qr_data, 8, &qr_width, qr_RGBA);
+                    if(R_FAILED(res)) {
+                        errorNotify(res);
+                        return true;
+                    }
                     brls::Image *qr_image = new brls::Image;
+                    qr_image->setScaleType(brls::ImageScaleType::VIEW_RESIZE);
                     qr_image->setImageRGBA((u8*)qr_RGBA.get(), qr_width, qr_width);
                     brls::AppletFrame* frame = new brls::AppletFrame(0,0);
                     frame->setContentView(qr_image);

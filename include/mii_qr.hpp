@@ -84,18 +84,20 @@ int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, 
     int ret = 0;
     mbedtls_ccm_context ctx;
     mbedtls_ccm_init(&ctx);
+    const auto ccm_guard = sg::make_scope_guard([ctx{&ctx}]() { mbedtls_ccm_free(ctx); });
     ret = mbedtls_ccm_setkey(&ctx,
         MBEDTLS_CIPHER_ID_AES,
         (unsigned char*)key,
         key_size * 8
     );
-    if (ret) {
+    if(ret) {
         char err[100] = {0};
         mbedtls_strerror(ret, err, 99);
         fprintf(stderr, "MbedTLS setkey: %s\n", err);
         return ret;
     }
-    ret = mbedtls_ccm_star_auth_decrypt(&ctx,
+    ret = mbedtls_ccm_star_auth_decrypt(
+        &ctx,
         size,
         (unsigned char*)nonce,
         nonce_size,
@@ -106,10 +108,48 @@ int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, 
         nullptr,
         0
     );
-    if (ret) {
+    if(ret) {
         char err[100] = {0};
         mbedtls_strerror(ret, err, 99);
         fprintf(stderr, "MbedTLS decrypt: %s\n", err);
+        return ret;
+    }
+    return 0;
+}
+
+int aesCcmEncrypt(const void* in, void* out, const int size, const void* nonce, const int nonce_size, const void* key, const int key_size) {
+    int ret = 0;
+    const int tag_len = 0x10;
+    mbedtls_ccm_context ctx;
+    mbedtls_ccm_init(&ctx);
+    const auto ccm_guard = sg::make_scope_guard([ctx{&ctx}]() { mbedtls_ccm_free(ctx); });
+    ret = mbedtls_ccm_setkey(&ctx,
+        MBEDTLS_CIPHER_ID_AES,
+        (unsigned char*)key,
+        key_size * 8
+    );
+    if(ret) {
+        char err[100] = {0};
+        mbedtls_strerror(ret, err, 99);
+        fprintf(stderr, "MbedTLS setkey: %s\n", err);
+        return ret;
+    }
+    ret = mbedtls_ccm_star_encrypt_and_tag(
+        &ctx,
+        size,
+        (unsigned char*)nonce,
+        nonce_size,
+        0,
+        0,
+        (unsigned char*)in,
+        (unsigned char*)out,
+        (unsigned char*)out + size,
+        tag_len
+    );
+    if(ret) {
+        char err[100] = {0};
+        mbedtls_strerror(ret, err, 99);
+        fprintf(stderr, "MbedTLS encrypt: %s\n", err);
         return ret;
     }
     return 0;
@@ -138,6 +178,32 @@ Result decyptMiiQrData(miiQrData* data, ver3StoreData* out) {
     memcpy(out, decrypted_data, padded_nonce_size);
     memcpy((u8*)out + padded_nonce_size, nonce, nonce_size);
     memcpy((u8*)out + padded_nonce_size + nonce_size, decrypted_data + padded_nonce_size, QR_DATA_SIZE - padded_nonce_size);
+    return 0;
+}
+
+Result encryptMiiQrData(ver3StoreData* in, miiQrData* out) {
+    u8 unencrypted_data[QR_DATA_SIZE];
+    const int nonce_size = 8;
+    const int padded_nonce_size = 12;
+    u8 nonce[padded_nonce_size];
+
+    miiQrKey key;
+    if(!getMiiKeyFromTxtFile(QR_KEY_FILE_PATH, &key)){
+        return BAD_KEY_FILE;
+    }
+    // seperate nonce and rest of data
+    memcpy(unencrypted_data, in, padded_nonce_size);
+    memcpy(&out->nonce, (u8*)in + padded_nonce_size, nonce_size);
+    memcpy(unencrypted_data + padded_nonce_size, (u8*)in + padded_nonce_size + nonce_size, QR_DATA_SIZE - padded_nonce_size);
+
+    // pad nonce
+    memcpy(nonce, &out->nonce, nonce_size);
+    memset(nonce + nonce_size, 0, padded_nonce_size - nonce_size);
+
+    int err = aesCcmEncrypt(unencrypted_data, &out->enc_data, QR_DATA_SIZE, &nonce, padded_nonce_size, &key, sizeof(key));
+    if(err != 0) {
+        return AES_CCM_FAILED;
+    }
     return 0;
 }
 
@@ -221,7 +287,7 @@ std::unique_ptr<u32[]> generateQrRGBA(u8 *data, size_t data_size, u32 scale, int
     std::vector<u8> data_vec(data, data+data_size);
     const QrCode qr = QrCode::encodeBinary(data_vec, QrCode::Ecc::HIGH);
     int qr_size = qr.getSize();
-    const int border = 1;
+    const int border = 3;
     int width = border*2 + qr_size;
     *out_width = width*scale;
     size_t arr_size = *out_width * *out_width;
@@ -250,4 +316,14 @@ std::unique_ptr<u32[]> generateQrRGBA(u8 *data, size_t data_size, u32 scale, int
 		}
 	}
     return out_data;
+}
+
+Result generateMiiQr(ver3StoreData* in, u32 scale, int* out_width, std::unique_ptr<u32[]> &out) {
+    Result ret;
+    miiQrData data;
+    ret = encryptMiiQrData(in, &data);
+    if(R_SUCCEEDED(ret)) {
+        out = generateQrRGBA((u8*)&data, sizeof(miiQrData), scale, out_width);
+    }
+    return ret;
 }
