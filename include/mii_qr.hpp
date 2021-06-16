@@ -313,7 +313,7 @@ std::unique_ptr<u32[]> generateQrRGBA(u8 *data, size_t data_size, u32 scale, int
                     }
                 }
             }
-		}
+        }
 	}
     return out_data;
 }

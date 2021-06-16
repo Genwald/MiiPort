@@ -12,6 +12,8 @@
 #include "miiport.hpp"
 
 
+const AppletType APPLET_TYPE = appletGetAppletType();
+
 Result init() {
     Result res;
     res = setsysInitialize();
@@ -265,10 +267,14 @@ int main(int argc, char* argv[]) {
     rootFrame->addTab("Export", exportList);
     rootFrame->addSeparator();
     rootFrame->addTab("About", aboutList);
-    rootFrame->registerAction("Show Mii applet", brls::Key::X, [] {
-        miiLaShowMiiEdit(MiiSpecialKeyCode_Special);
-        return true;
-    });
+
+    // This was not working in applet mode. I think this is a memory issue?
+    if(APPLET_TYPE == AppletType_Application || APPLET_TYPE == AppletType_SystemApplication) {
+        rootFrame->registerAction("Show Mii applet", brls::Key::X, [] {
+            miiLaShowMiiEdit(MiiSpecialKeyCode_Special);
+            return true;
+        });
+    }
     
     brls::Application::pushView(rootFrame);
 
