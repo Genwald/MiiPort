@@ -1,6 +1,6 @@
 #include "quirc.h"
 #include "turbojpeg.h"
-#include <mbedtls/ccm.h>
+#include <ccm_3ds.h>
 #include <mbedtls/error.h>
 #include <switch/types.h>
 #include <switch/crypto/crc.h>
@@ -19,10 +19,11 @@
 
 const char* QR_KEY_FILE_PATH = "/MiiPort/qrkey.txt";
 const int QR_DATA_SIZE = 0x58;
+const int CCM_TAG_LEN = 0x10;
 typedef struct {
     u64 nonce;
     u8 enc_data[QR_DATA_SIZE];
-    u8 ccm_mac[0x10];
+    u8 ccm_mac[CCM_TAG_LEN];
 } miiQrData;
 
 const u32 MII_QR_KEY_CRC32 = 0xb1cdb267;
@@ -96,7 +97,7 @@ int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, 
         fprintf(stderr, "MbedTLS setkey: %s\n", err);
         return ret;
     }
-    ret = mbedtls_ccm_star_auth_decrypt(
+    ret = mbedtls_ccm_auth_decrypt_3ds(
         &ctx,
         size,
         (unsigned char*)nonce,
@@ -105,8 +106,8 @@ int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, 
         0,
         (unsigned char*)in,
         (unsigned char*)out,
-        nullptr,
-        0
+        (unsigned char*)in + size,
+        CCM_TAG_LEN
     );
     if(ret) {
         char err[100] = {0};
@@ -117,9 +118,9 @@ int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, 
     return 0;
 }
 
+// out must be size+CCM_TAG_LEN for MAC
 int aesCcmEncrypt(const void* in, void* out, const int size, const void* nonce, const int nonce_size, const void* key, const int key_size) {
     int ret = 0;
-    const int tag_len = 0x10;
     mbedtls_ccm_context ctx;
     mbedtls_ccm_init(&ctx);
     const auto ccm_guard = sg::make_scope_guard([ctx{&ctx}]() { mbedtls_ccm_free(ctx); });
@@ -134,17 +135,17 @@ int aesCcmEncrypt(const void* in, void* out, const int size, const void* nonce, 
         fprintf(stderr, "MbedTLS setkey: %s\n", err);
         return ret;
     }
-    ret = mbedtls_ccm_star_encrypt_and_tag(
+    ret = mbedtls_ccm_star_encrypt_and_tag_3ds(
         &ctx,
         size,
         (unsigned char*)nonce,
         nonce_size,
-        0,
+        nullptr,
         0,
         (unsigned char*)in,
         (unsigned char*)out,
         (unsigned char*)out + size,
-        tag_len
+        CCM_TAG_LEN
     );
     if(ret) {
         char err[100] = {0};
@@ -155,7 +156,7 @@ int aesCcmEncrypt(const void* in, void* out, const int size, const void* nonce, 
     return 0;
 }
 
-Result decyptMiiQrData(miiQrData* data, ver3StoreData* out) {
+Result decryptMiiQrData(miiQrData* data, ver3StoreData* out) {
     int err;
     u8 decrypted_data[QR_DATA_SIZE];
     const int nonce_size = 8;
@@ -270,9 +271,8 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
             printf("QR decode failed: %s\n", quirc_strerror(err));
             return QR_DECODE_FAIL;
         }
-        else {
-            Result res = 0;
-            res = decyptMiiQrData((miiQrData*)data.payload, out_mii);
+        else {        
+            Result res = decryptMiiQrData((miiQrData*)data.payload, out_mii);
             if(R_FAILED(res)) {
                 return res;
             }

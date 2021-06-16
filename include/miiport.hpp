@@ -277,6 +277,22 @@ Result miiDbAddOrReplaceCharInfoFromFile(const char* file_path) {
     return addOrReplaceStoreDataWithPrompt(&new_data);
 }
 
+Result showQrPopup(ver3StoreData* data, std::string name) {
+    int qr_width = 0;
+    std::unique_ptr<u32[]> qr_RGBA;
+    Result res = generateMiiQr(data, 8, &qr_width, qr_RGBA);
+    if(R_FAILED(res)) {
+        return res;
+    }
+    brls::Image *qr_image = new brls::Image;
+    qr_image->setScaleType(brls::ImageScaleType::NO_RESIZE);
+    qr_image->setImageRGBA((u8*)qr_RGBA.get(), qr_width, qr_width);
+    brls::AppletFrame* frame = new brls::AppletFrame(0,0);
+    frame->setContentView(qr_image);
+    brls::PopupFrame::open("QR Code", frame, "", name);
+    return 0;
+}
+
 Result importMiiQr(const char* path) {
     ver3StoreData ver3mii;
     storeData mii;

@@ -166,11 +166,18 @@ void charInfoToVer3StoreData(const charInfo* in, ver3StoreData* out) {
     memcpy(out->name, in->nickname, 10 * sizeof(char16_t));
     out->mii_version = 3;
     out->copyable = 1;
-    out->birth_platform = 4;
+    // The switch sets this to 4, but the 3DS rejects it if set to >3
+    out->birth_platform = 3;
     out->birth_month = 4;
     out->birth_day = 20;
     randomGet(out->create_id, sizeof(out->create_id));
-    out->create_id[0] = (out->create_id[0] & 0xf) | 0xd0;
+    /* 
+     * Set 0b1101 in the 4 MSB of create_id
+     * This sets non-special and some unknown flags
+     * Note: the Switch's nnsdk sets 0b1101, 
+     * but all other QRs I checked had 0b1001
+     */
+    out->create_id[0] = (out->create_id[0] & 0b0000'1111) | 0b1101'0000;
     randomGet(&out->author_id, sizeof(out->author_id));
     memcpy(out->creator_name, u"MiiPort", sizeof(u"MiiPort"));
     setCrc16(out, sizeof(ver3StoreData));
