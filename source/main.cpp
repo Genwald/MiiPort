@@ -151,13 +151,14 @@ int main(int argc, char* argv[]) {
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
     "A tool to import and export Miis in a variety of formats.\n"
     "Supports importing the NFIF, charinfo, coredata and storedata formats.\n"
-    "Exports full DBs in NFIF and individual characters in charinfo."
+    "Exports full DBs in NFIF and individual characters in charinfo.\n"
+    "Can also import jpeg images of Mii QR codes and generate new QR codes."
     , true));
 
     aboutList->addView(new FocusHeader("How to use", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
     "Place Mii files in \"sd:/MiiPort/miis/\".\n"
-    "Give files a file extension that corresponds to their format i.e. \".charinfo\".\n"
+    "Give files a file extension that corresponds to their format i.e. \".charinfo\" or \".jpg\".\n"
     "Currently exports to \"sd:/MiiPort/miis/exportedDB.NFIF\" and \"sd:/MiiPort/miis/[name].charinfo\" or \"sd:/MiiPort/miis/[Mii ID].charinfo\" if the name can not be used. This will overwrite an existing file.\n"
     "For cordata files, a Mii ID can be specified in hexadecimal in the file name, otherwise a random one will be used.\n"
     "For example \"7C118DA34ADB46CB8FFC083BD00DC111.coredata\"\n"
@@ -165,9 +166,9 @@ int main(int argc, char* argv[]) {
 
     aboutList->addView(new FocusHeader("QR key info", false));
     aboutList->addView(new brls::Label(brls::LabelStyle::REGULAR, 
-    "In order to import Miis from a qr code, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes.\n\n"
-    "You can find this on the internet by searching for \"Mii QR key\".\n"
-    "This program looks for the key in hex in the file \"/MiiPort/qrkey.txt\".\n"
+    "In order to import Miis from a QR code or generate QR codes, you must supply the Mii QR key. This is needed to decrypt the Mii data stored in Mii QR codes.\n\n"
+    "You can find this on the internet by searching for \"Mii QR key\" or \"slot0x31KeyN\".\n"
+    "This program looks for the key in hex in the first line of the file \"/MiiPort/qrkey.txt\".\n"
     "It will accept it in a variety of formats such as:\n"
     "\"[0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA]\"\n"
     "or \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n"
