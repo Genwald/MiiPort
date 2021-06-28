@@ -13,7 +13,7 @@ const u8 Ver3EyeColorTable[6] = {8, 9, 10, 11, 12, 13};
 
 const u8 Ver3MouthColorTable[5] = {19, 20, 21, 22, 23};
 
-const u8 Ver3GlassColorTable[7] = {8, 14, 15, 16, 17, 0};
+const u8 Ver3GlassColorTable[7] = {8, 14, 15, 16, 17, 18, 0};
 
 const u8 ToVer3GlassTypeTable[20] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 1, 3, 7, 7, 6, 7, 8, 7, 7};
 
