@@ -44,7 +44,7 @@ DATA		:=	data
 ICON		:=	resources/icon/MiiPortTitle.jpg
 INCLUDES	:=	include
 APP_AUTHOR	:=	Genwald
-APP_VERSION	:=	0.0.1
+APP_VERSION	:=	0.1.1
 
 ROMFS				:=	resources
 BOREALIS_PATH		:=	libs/borealis
