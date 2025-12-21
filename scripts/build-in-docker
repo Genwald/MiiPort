@@ -71,7 +71,6 @@ fi
 su -s /bin/bash "$user_name" -c '
 	set -euo pipefail
 	cd /MiiPort
-	git submodule update --init --recursive
 	make clean
 	make -j$(nproc)
 '
