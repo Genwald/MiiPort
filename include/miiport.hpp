@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 
 void errorCodeNotify(Result res) {
     std::stringstream ss;
-    ss << "Import error: 0x" << std::hex << res;
+    ss << "Error: 0x" << std::hex << res;
     brls::Application::notify(ss.str());
 }
 
