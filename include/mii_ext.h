@@ -289,7 +289,10 @@ Result miiDatabaseFindIndex(MiiDatabase *db, const MiiCreateId* id, bool include
     return serviceDispatchInOut(&db->s, 11, in, *out_idx);
 }
 
-// needs changes
 Result miiDatabaseGetIndex(MiiDatabase *db, int idx, charInfo* out) {
-    return serviceDispatchInOut(&db->s, 21, idx, out);
+    charInfo tmp{};
+    Result rc = serviceDispatchInOut(&db->s, 21, idx, tmp);
+    if (R_SUCCEEDED(rc) && out)
+        *out = tmp;
+    return rc;
 }

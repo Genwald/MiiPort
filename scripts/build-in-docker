@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+HOST_UID=${HOST_UID:-$(id -u)}
+HOST_GID=${HOST_GID:-$(id -g)}
+HOST_USER=${HOST_USER:-builder}
+HOST_HOME=${HOST_HOME:-/tmp/docker-${HOST_USER}}
+SWITCH_PKGS=${SWITCH_PKGS:-"switch-libjpeg-turbo switch-mbedtls"}
+QUIRC_VERSION=${QUIRC_VERSION:-1.1}
+
+if [[ -t 1 ]]; then
+	TTY_FLAGS="-it"
+else
+	TTY_FLAGS="-i"
+fi
+
+DOCKER_CMD=$(cat <<'CONTAINER_SCRIPT'
+set -euo pipefail
+dkp-pacman -Syu --noconfirm
+dkp-pacman -S --needed --noconfirm $SWITCH_PKGS
+
+if ! command -v fakeroot >/dev/null 2>&1; then
+	apt-get update
+	apt-get install -y --no-install-recommends fakeroot
+fi
+
+install_switch_libquirc() {
+	local version="${QUIRC_VERSION:-1.1}"
+	local tmp_dir
+	tmp_dir=$(mktemp -d)
+	pushd "$tmp_dir" >/dev/null
+	curl -L -o quirc.zip "https://github.com/dlbeer/quirc/archive/refs/tags/v${version}.zip"
+	unzip -q quirc.zip
+	cd "quirc-${version}"
+	source /opt/devkitpro/switchvars.sh
+	make CC=${TOOL_PREFIX}gcc PREFIX=${PORTLIBS_PREFIX} libquirc.a
+	install -Dm0644 lib/quirc.h "${PORTLIBS_PREFIX}/include/quirc.h"
+	install -Dm0644 libquirc.a "${PORTLIBS_PREFIX}/lib/libquirc.a"
+	install -Dm0644 LICENSE "/opt/devkitpro/portlibs/switch/licenses/switch-libquirc/LICENSE"
+	popd >/dev/null
+	rm -rf "$tmp_dir"
+}
+
+host_uid=${HOST_UID:?}
+host_gid=${HOST_GID:?}
+host_user=${HOST_USER:-builder}
+host_home=${HOST_HOME:-/tmp/docker-${host_user}}
+
+group_name=$(getent group | awk -F: -v id="$host_gid" '($3==id){print $1; exit}')
+if [[ -z "${group_name}" ]]; then
+	group_name="builder-${host_gid}"
+	groupadd -g "$host_gid" "${group_name}"
+fi
+
+user_name=$(getent passwd | awk -F: -v id="$host_uid" '($3==id){print $1; exit}')
+if [[ -z "${user_name}" ]]; then
+	user_name="$host_user"
+	useradd -m -d "$host_home" -u "$host_uid" -g "$group_name" "$user_name"
+else
+	host_home=$(getent passwd "$user_name" | cut -d: -f6)
+fi
+
+chown -R "$host_uid:$host_gid" /MiiPort
+
+quirc_header="/opt/devkitpro/portlibs/switch/include/quirc.h"
+if [[ ! -f "$quirc_header" ]]; then
+	echo "switch-libquirc not present; building v${QUIRC_VERSION:-1.1} from source"
+	install_switch_libquirc
+fi
+su -s /bin/bash "$user_name" -c '
+	set -euo pipefail
+	cd /MiiPort
+	make clean
+	make -j$(nproc)
+'
+CONTAINER_SCRIPT
+)
+
+docker run --rm ${TTY_FLAGS} \
+	-e HOST_UID="$HOST_UID" \
+	-e HOST_GID="$HOST_GID" \
+	-e HOST_USER="$HOST_USER" \
+	-e HOST_HOME="$HOST_HOME" \
+	-e SWITCH_PKGS="$SWITCH_PKGS" \
+	-e QUIRC_VERSION="$QUIRC_VERSION" \
+	-v "$PWD:/MiiPort" \
+	-w /MiiPort \
+	devkitpro/devkita64 \
+	bash -lc "$DOCKER_CMD"
