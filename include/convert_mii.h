@@ -57,6 +57,18 @@ void coreDataToStoreData(const coreData* in, const MiiCreateId* id, storeData* o
     setStoreDataCrc16(out);
 }
 
+void cleanVer3Name(char16_t* name, u32 length) {
+    bool after_end = false;
+    for (int i = 0; i < length; i++) {
+        if (after_end) {
+            name[i] = 0;
+        }
+        else if (name[i] == 0) {
+            after_end = true;
+        }
+    }
+}
+
 void ver3StoreDataToStoreData(const ver3StoreData* in, storeData* out) {
     out->core_data.font_region = in->font_region;
     out->core_data.favorite_color = in->favorite_color;
@@ -109,6 +121,7 @@ void ver3StoreDataToStoreData(const ver3StoreData* in, storeData* out) {
     out->core_data.mole_x = in->mole_x;
     out->core_data.mole_y = in->mole_y;
     memcpy(out->core_data.nickname, in->name, 10 * sizeof(char16_t));
+    cleanVer3Name(out->core_data.nickname, 10);
     makeRandCreateId(&out->create_id);
     coreDataToStoreData(&out->core_data, &out->create_id, out);
 }
