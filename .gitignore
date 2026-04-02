@@ -2,3 +2,5 @@
 *.nacp
 *.nro
 build/*
+libs/quirc/*
+!libs/quirc/PKGBUILD
