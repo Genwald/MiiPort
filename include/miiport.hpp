@@ -66,6 +66,10 @@ void errorNotify(Result res, std::string success_message = "Imported!") {
             brls::Application::notify("Incorrect Mii QR key.\nSee \"About\" tab.");
             break;
         }
+        case MISSING_KEY_FILE: {
+            brls::Application::notify("qrkey.txt not found.\nSee \"About\" tab.");
+            break;
+        }
         default: {
             errorCodeNotify(res);
             break;

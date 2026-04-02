@@ -61,24 +61,24 @@ bool findBytesInText(const char* str, void* out, size_t size) {
     }
 }
 
-bool getMiiKeyFromTxtFile(const char* path, miiQrKey* key_out) {
+int getMiiKeyFromTxtFile(const char* path, miiQrKey* key_out) {
     std::string str;
     std::ifstream key_file(path);
     if(key_file.fail()) {
         key_file.close();
-        return false;
+        return MISSING_KEY_FILE;
     }
     std::getline(key_file, str);
     key_file.close();
     
     if(!findBytesInText(str.c_str(), key_out, sizeof(miiQrKey))) {
-        return false;
+        return BAD_KEY_FILE;
     }
 
     if( !(crc32Calculate(key_out, sizeof(miiQrKey)) == MII_QR_KEY_CRC32) ) {
-        return false;
+        return BAD_KEY_FILE;
     }
-    return true;
+    return 0;
 }
 
 int aesCcmDecrypt(const void* in, void* out, const int size, const void* nonce, const int nonce_size, const void* key, const int key_size) {
@@ -157,7 +157,7 @@ int aesCcmEncrypt(const void* in, void* out, const int size, const void* nonce, 
 }
 
 Result decryptMiiQrData(miiQrData* data, ver3StoreData* out) {
-    int err;
+    int ret = 0;
     u8 decrypted_data[QR_DATA_SIZE];
     const int nonce_size = 8;
     const int padded_nonce_size = 12;
@@ -167,11 +167,12 @@ Result decryptMiiQrData(miiQrData* data, ver3StoreData* out) {
     memset(nonce + nonce_size, 0, padded_nonce_size - nonce_size);
 
     miiQrKey key;
-    if(!getMiiKeyFromTxtFile(QR_KEY_FILE_PATH, &key)){
-        return BAD_KEY_FILE;
+    ret = getMiiKeyFromTxtFile(QR_KEY_FILE_PATH, &key);
+    if(!R_SUCCEEDED(ret)){
+        return ret;
     }
-    err = aesCcmDecrypt(&data->enc_data, decrypted_data, QR_DATA_SIZE, &nonce, padded_nonce_size, &key, sizeof(key));
-    if(err != 0) {
+    ret = aesCcmDecrypt(&data->enc_data, decrypted_data, QR_DATA_SIZE, &nonce, padded_nonce_size, &key, sizeof(key));
+    if(ret != 0) {
         return AES_CCM_FAILED;
     }
 
@@ -183,14 +184,16 @@ Result decryptMiiQrData(miiQrData* data, ver3StoreData* out) {
 }
 
 Result encryptMiiQrData(ver3StoreData* in, miiQrData* out) {
+    int ret = 0;
     u8 unencrypted_data[QR_DATA_SIZE];
     const int nonce_size = 8;
     const int padded_nonce_size = 12;
     u8 nonce[padded_nonce_size];
 
     miiQrKey key;
-    if(!getMiiKeyFromTxtFile(QR_KEY_FILE_PATH, &key)){
-        return BAD_KEY_FILE;
+    ret = getMiiKeyFromTxtFile(QR_KEY_FILE_PATH, &key);
+    if(!R_SUCCEEDED(ret)){
+        return ret;
     }
     // seperate nonce and rest of data
     memcpy(unencrypted_data, in, padded_nonce_size);
@@ -201,8 +204,8 @@ Result encryptMiiQrData(ver3StoreData* in, miiQrData* out) {
     memcpy(nonce, &out->nonce, nonce_size);
     memset(nonce + nonce_size, 0, padded_nonce_size - nonce_size);
 
-    int err = aesCcmEncrypt(unencrypted_data, &out->enc_data, QR_DATA_SIZE, &nonce, padded_nonce_size, &key, sizeof(key));
-    if(err != 0) {
+    ret = aesCcmEncrypt(unencrypted_data, &out->enc_data, QR_DATA_SIZE, &nonce, padded_nonce_size, &key, sizeof(key));
+    if(ret != 0) {
         return AES_CCM_FAILED;
     }
     return 0;
