@@ -59,7 +59,7 @@ void coreDataToStoreData(const coreData* in, const MiiCreateId* id, storeData* o
 
 void cleanVer3Name(char16_t* name, u32 length) {
     bool after_end = false;
-    for (int i = 0; i < length; i++) {
+    for (u32 i = 0; i < length; i++) {
         if (after_end) {
             name[i] = 0;
         }

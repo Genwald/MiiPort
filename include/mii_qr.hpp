@@ -218,7 +218,7 @@ Result parseMiiQr(const char* path, ver3StoreData* out_mii) {
     struct stat st;
     stat(path, &st);
     size_t jpg_size = st.st_size;
-    std::unique_ptr<u8> jpg_data(new u8[jpg_size]);
+    std::unique_ptr<u8[]> jpg_data(new u8[jpg_size]);
 
     FILE* jpg_file = fopen(path, "r");
     fread(jpg_data.get(), 1, jpg_size, jpg_file);
